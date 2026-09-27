@@ -1,0 +1,6 @@
+{
+  "envId": "cloud1-d2gzje1i7ba287acb",
+  "cloudrun": {
+    "name": "ai-travel-backend"
+  }
+}

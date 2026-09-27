@@ -1,0 +1,83 @@
+<!--
+============================================================================
+pages/generate/index.wxml — AI生成中页面模板
+============================================================================
+核心元素：
+  1. 步骤指示器（继承 create 的 3 步进度）
+  2. AI 动画图标（脉冲效果）
+  3. 5 步进度列表（分析→检索→规划→预算→优化）
+  4. 旅行小贴士轮播
+  5. 底部免责声明
+============================================================================
+-->
+<view class="page-generate">
+  <!-- 顶部导航栏 -->
+  <view class="nav-header" style="padding-top: {{safeTop}}px">
+    <view class="nav-header-inner">
+      <view class="nav-back" bindtap="onBack">
+        <text class="ri-icon nav-back-icon"></text>
+      </view>
+      <text class="nav-title">创建我的行程</text>
+      <view class="nav-right"></view>
+    </view>
+  </view>
+
+  <!-- 主内容 -->
+  <scroll-view class="main-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <!-- 步骤指示器 -->
+    <view class="step-wrap">
+      <step-indicator steps="{{stepData}}" />
+    </view>
+
+    <!-- === AI 加载动画 === -->
+    <!-- 脉冲动画的图标 + 标题 + 模式标签 -->
+    <view class="ai-section">
+      <view class="ai-icon pulse">
+        <text class="ri-icon ai-icon-text"></text>
+      </view>
+      <text class="ai-title">AI 正在为你规划行程</text>
+      <text class="ai-subtitle">
+        这可能需要几秒钟... 
+        <!-- mode 变量表示当前模式：backend=真实AI生成，mock=模拟 -->
+        <text class="mode-tag {{mode}}">{{mode === 'backend' ? 'AI实时生成' : '模拟演示'}}</text>
+      </text>
+    </view>
+
+    <!-- === 5步进度列表 === -->
+    <!-- 每步有 3 种状态：completed=已完成✓, loading=进行中(旋转动画), waiting=等待中(灰色圆点) -->
+    <view class="progress-card">
+      <view class="progress-item" wx:for="{{progressSteps}}" wx:key="index">
+        <!-- 状态点 -->
+        <view class="progress-dot {{item.status}}">
+          <text wx:if="{{item.status === 'completed'}}" class="ri-icon progress-check"></text>
+          <view wx:elif="{{item.status === 'loading'}}" class="progress-loading"></view>
+          <view wx:else class="progress-wait"></view>
+        </view>
+        <!-- 步骤文字 -->
+        <view class="progress-info">
+          <text class="progress-text {{item.status}}">{{item.text}}</text>
+        </view>
+        <!-- 状态文字 -->
+        <text class="progress-status {{item.status}}">
+          {{item.status === 'completed' ? '完成' : item.status === 'loading' ? '进行中' : '等待中'}}
+        </text>
+      </view>
+    </view>
+
+    <!-- === 旅行小贴士（轮播展示） === -->
+    <!-- currentTip 在 JS 中每 1.5 秒随机更换 -->
+    <view class="tips-card">
+      <text class="ri-icon tips-card-icon"></text>
+      <view class="tips-card-content">
+        <text class="tips-card-title">旅行小贴士</text>
+        <text class="tips-card-text">{{currentTip}}</text>
+      </view>
+    </view>
+
+    <!-- 底部 AI 免责声明 -->
+    <view class="bottom-note">
+      <text class="ri-icon bottom-note-icon"></text>
+      <text class="bottom-note-text">AI 生成内容仅供参考，请以实际情况为准</text>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,59 @@
+<view class="timeline-item">
+  <!-- 时间点 -->
+  <view class="time-dot" style="border-color: {{item.tagColor || '#3B82F6'}}">
+    <view class="dot-inner" style="background: {{item.tagColor || '#3B82F6'}}"></view>
+  </view>
+  
+  <!-- 时间 -->
+  <view class="time-label">
+    <text class="time-text">{{item.time}}</text>
+  </view>
+  
+  <!-- 行程卡片 -->
+  <view class="trip-detail-card">
+    <!-- 标题区 -->
+    <view class="detail-header">
+      <view class="detail-title-area">
+        <text class="detail-name">{{item.name}}</text>
+        <view class="detail-location">
+          <text class="ri-icon loc-icon"></text>
+          <text class="loc-text">{{item.address}}</text>
+        </view>
+      </view>
+      <view class="detail-tag" wx:if="{{item.tag}}" style="background: {{item.tagBg || '#FEF2F2'}}">
+        <text class="tag-text" style="color: {{item.tagColor || '#EF4444'}}">{{item.tag}}</text>
+      </view>
+    </view>
+
+    <!-- 描述 -->
+    <view class="detail-desc" wx:if="{{item.description}}">
+      <text class="desc-text">{{item.description}}</text>
+    </view>
+
+    <!-- 图片 -->
+    <image wx:if="{{item.image}}" class="detail-image" src="{{item.image}}" mode="aspectFill" />
+
+    <!-- 菜品推荐 -->
+    <view class="dish-row" wx:if="{{item.dishes && item.dishes.length > 0}}">
+      <view class="dish-item" wx:for="{{item.dishes}}" wx:key="name">
+        <image class="dish-img" src="{{item.image}}" mode="aspectFill" />
+        <text class="dish-name">{{item.name}}</text>
+      </view>
+    </view>
+
+    <!-- 演出时间表 -->
+    <view class="schedule-box" wx:if="{{item.schedule && item.schedule.length > 0}}">
+      <text class="schedule-title">今日演出时间表</text>
+      <view class="schedule-row" wx:for="{{item.schedule}}" wx:key="name">
+        <text class="schedule-name">{{item.name}}</text>
+        <text class="schedule-times">{{item.times}}</text>
+      </view>
+    </view>
+
+    <!-- 贴士 -->
+    <view class="tips-box" wx:if="{{item.tips}}">
+      <text class="ri-icon tips-icon"></text>
+      <text class="tips-text">{{item.tips}}</text>
+    </view>
+  </view>
+</view>

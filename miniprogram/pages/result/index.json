@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "timeline-item": "/components/timeline-item/index"
+  }
+}

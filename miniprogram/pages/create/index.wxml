@@ -1,0 +1,467 @@
+<!--
+============================================================================
+pages/create/index.wxml — 创建行程页面模板（302行）
+============================================================================
+这是小程序的「创建行程」页面，分两步收集用户信息：
+  Step1（基本信息）:  起始地 + 目的地 + 出行日期 + 出行人数
+  Step2（偏好设置）:  旅行风格 + 兴趣偏好 + 预算范围 + 住宿偏好 + 特殊需求
+
+核心技术点：
+  - WXS 模块（模板层的JavaScript，用于搜索过滤和数组判断）
+  - Swiper 组件实现左右滑动切换步骤
+  - Picker 组件实现日期选择（微信原生）
+  - 城市选择器弹窗（半屏滑入 + 搜索 + A-Z索引）
+  - 数据绑定：{{变量}} 双向绑定
+  - 事件绑定：bindtap / bindinput / bindchange / bindblur
+  - 条件渲染：wx:if / wx:for
+============================================================================
+-->
+
+<!-- ===== WXS 模块 ===== -->
+<!-- WXS = WeiXin Script，运行在渲染层的JavaScript子集（不能操作DOM，只能做数据处理） -->
+<!-- 为什么用WXS而不是JS？因为WXS可以在WXML中直接调用，无需通过setData -->
+<wxs module="searchFilter">
+  // includes: 判断字符串是否包含关键词（大小写敏感，用于城市搜索过滤）
+  var includes = function(str, keyword) {
+    if (!str || !keyword) return false;                    // 空值防护：str或keyword为空直接返回false
+    return str.indexOf(keyword) > -1;                     // indexOf: 找到返回位置(≥0)，找不到返回-1
+  };
+  // hasMatch: 判断城市列表中是否有名字匹配关键词的项（用于"未找到匹配城市"提示）
+  var hasMatch = function(list, keyword) {
+    if (!list || list.length === 0 || !keyword) return false;  // 空列表或空关键词直接返回false
+    for (var i = 0; i < list.length; i++) {                    // 遍历所有城市
+      if (list[i].name.indexOf(keyword) > -1) return true;   // 找到一个匹配项立即返回true
+    }
+    return false;                                              // 一个都没找到返回false
+  };
+  // arrHas: 判断数组中是否包含某个值（用于判断兴趣标签是否被选中）
+  var arrHas = function(arr, val) {
+    if (!arr || arr.length === 0) return false;                // 空数组返回false
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] === val) return true;                         // 严格相等判断
+    }
+    return false;
+  };
+  // 导出为 searchFilter 模块，WXML中用 searchFilter.includes(xxx) 调用
+  module.exports = { includes: includes, hasMatch: hasMatch, arrHas: arrHas };
+</wxs>
+
+<!-- ===== 页面根容器 ===== -->
+<view class="page-create">
+  <!-- ===== 顶部导航栏 ===== -->
+  <!-- padding-top: 动态设置状态栏高度（刘海屏适配） -->
+  <view class="nav-header" style="padding-top: {{safeTop}}px">
+    <view class="nav-header-inner">
+      <!-- 返回按钮：左箭头图标 + bindtap事件绑定 -->
+      <view class="nav-back" bindtap="onBack">
+        <text class="ri-icon nav-back-icon"></text>            <!-- remixicon 左箭头 -->
+      </view>
+      <!-- 页面标题 -->
+      <text class="nav-title">创建我的行程</text>
+      <!-- 右侧占位区域（保持标题居中） -->
+      <view class="nav-right">
+        <text class="ri-icon nav-right-icon"></text>            <!-- 分享图标 -->
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 步骤指示器 ===== -->
+  <!-- step-indicator 是自定义组件（components/step-indicator/），接收 steps 数组 -->
+  <!-- stepData 在 JS 中定义，包含3个步骤的状态和颜色 -->
+  <view class="step-wrap">
+    <step-indicator steps="{{stepData}}" />
+  </view>
+
+  <!-- ===== Swiper 步骤滑动容器 ===== -->
+  <!-- current: 绑定当前步骤索引（JS中setData控制） -->
+  <!-- duration: 滑动动画时长（毫秒） -->
+  <!-- disable-touch: false=允许手指滑动切换（默认行为） -->
+  <!-- bindchange: Swiper页切换时触发（JS中同步步骤指示器状态） -->
+  <swiper class="step-swiper" current="{{currentStep}}" duration="350" bindchange="onSwiperChange">
+    
+    <!-- ==================== 步骤1：基本信息 ==================== -->
+    <swiper-item>
+      <!-- scroll-y: 内容超出时纵向滚动（防止键盘弹起时内容被遮挡） -->
+      <scroll-view class="swiper-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="form-section">
+
+          <!-- ---------- 起始地 ---------- -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #3B82F6"></text>  <!-- 蓝色定位图标 -->
+              <text class="card-title">起始地</text>
+            </view>
+            <view class="form-card-body">
+              <view class="dest-input-row">
+                <!-- value: 双向绑定 originInputValue -->
+                <!-- placeholder: 未输入时的灰色提示文字 -->
+                <!-- placeholder-class: 微信小程序特有的placeholder样式类 -->
+                <!-- bindinput: 每次输入都触发 onOriginInput -->
+                <!-- bindblur: 输入框失去焦点时触发 onOriginBlur（用于城市名校验） -->
+                <input class="dest-text-input" 
+                  value="{{originInputValue}}" 
+                  placeholder="输入出发城市 或 点击右侧选择" 
+                  placeholder-class="dest-placeholder" 
+                  bindinput="onOriginInput" 
+                  bindblur="onOriginBlur" />
+                <!-- 渐变蓝色选择按钮 → 弹出城市选择器 -->
+                <!-- data-target: 自定义属性，传递参数告诉JS"点击的是起始地" -->
+                <view class="dest-pick-btn" bindtap="onToggleCityPicker" data-target="origin">
+                  <text class="ri-icon dest-pick-icon"></text>           <!-- 加号图标 -->
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 目的地 ---------- -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #EF4444"></text>  <!-- 红色地标图标 -->
+              <text class="card-title">目的地</text>
+            </view>
+            <view class="form-card-body">
+              <view class="dest-input-row">
+                <input class="dest-text-input" 
+                  value="{{destInputValue}}" 
+                  placeholder="输入城市名称 或 点击右侧选择" 
+                  placeholder-class="dest-placeholder" 
+                  bindinput="onDestInput" 
+                  bindblur="onDestBlur" />
+                <view class="dest-pick-btn" bindtap="onToggleCityPicker" data-target="dest">
+                  <text class="ri-icon dest-pick-icon"></text>
+                </view>
+              </view>
+              <!-- 随机目的地推荐行 -->
+              <view class="random-row">
+                <text class="random-tip">不知道去哪？让AI为你推荐</text>
+                <view class="random-btn" bindtap="onRandomDest">
+                  <text class="ri-icon random-icon"></text>               <!-- 骰子图标 -->
+                  <text class="random-text">随机生成</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 出行日期 ---------- -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #3B82F6"></text>  <!-- 日历图标 -->
+              <text class="card-title">出行日期</text>
+            </view>
+            <view class="form-card-body">
+              <view class="date-row">
+                <!-- picker: 微信原生日期选择器 -->
+                <!-- mode="date": 日期模式（只选日期，选不了时间） -->
+                <!-- value: 当前已选日期 -->
+                <!-- start="今天": 不能选择今天之前的日期 -->
+                <!-- bindchange: 选择完成后触发 -->
+                <picker mode="date" value="{{startDate}}" start="{{todayStr}}" bindchange="onStartDateChange">
+                  <view class="date-input">
+                    <text class="date-label">开始日期</text>
+                    <!-- 三元表达式：startDate有值→正常显示，无值→灰色"请选择" -->
+                    <text class="date-value {{startDate ? '' : 'placeholder'}}">{{startDate || '请选择'}}</text>
+                  </view>
+                </picker>
+                <text class="ri-icon date-arrow"></text>              <!-- 右箭头（视觉上的→） -->
+                <!-- 结束日期的start属性=endMinDate（开始日期），确保不能选早于开始日期 -->
+                <picker mode="date" value="{{endDate}}" start="{{endMinDate || todayStr}}" bindchange="onEndDateChange">
+                  <view class="date-input">
+                    <text class="date-label">结束日期</text>
+                    <text class="date-value {{endDate ? '' : 'placeholder'}}">{{endDate || '请选择'}}</text>
+                  </view>
+                </picker>
+              </view>
+              <!-- 选好日期后显示天数计算结果（如 "共3天2晚"） -->
+              <!-- wx:if="{{days > 0}}": 只有选好日期后才显示 -->
+              <view class="days-info" wx:if="{{days > 0}}">
+                <text class="days-text">共 
+                  <text class="days-num">{{days}}</text> 天            <!-- 加粗算出的天数 -->
+                  <text class="days-num">{{nights}}</text> 晚          <!-- 加粗算出的晚数 -->
+                </text>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 出行人数 ---------- -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #22C55E"></text>  <!-- 绿色用户图标 -->
+              <text class="card-title">出行人数</text>
+            </view>
+            <view class="form-card-body">
+              <!-- 成人行 -->
+              <view class="people-row">
+                <text class="people-label">成人</text>
+                <text class="people-hint">（必选，至少1人）</text>
+                <view class="people-counter">
+                  <!-- 减号按钮：adults > 1 时可用，否则 disabled 半透明 -->
+                  <view class="counter-btn {{adults > 1 ? '' : 'disabled'}}" bindtap="onMinusAdult">
+                    <text class="ri-icon counter-icon"></text>          <!-- 减号图标 -->
+                  </view>
+                  <text class="counter-num">{{adults}}</text>            <!-- 当前人数 -->
+                  <!-- 加号按钮：始终可用（蓝色active状态） -->
+                  <view class="counter-btn active" bindtap="onPlusAdult">
+                    <text class="ri-icon counter-icon white"></text>   <!-- 加号图标（白色） -->
+                  </view>
+                </view>
+              </view>
+              <!-- 小孩行 -->
+              <view class="people-row child-row">
+                <text class="people-label">小孩</text>
+                <text class="people-hint">（可选）</text>
+                <view class="people-counter">
+                  <view class="counter-btn {{children > 0 ? '' : 'disabled'}}" bindtap="onMinusChild">
+                    <text class="ri-icon counter-icon"></text>
+                  </view>
+                  <text class="counter-num">{{children}}</text>
+                  <view class="counter-btn active" bindtap="onPlusChild">
+                    <text class="ri-icon counter-icon white"></text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+        </view>
+        <!-- 底部留白（防止最后一个卡片太贴边） -->
+        <view class="bottom-space"></view>
+      </scroll-view>
+    </swiper-item>
+
+    <!-- ==================== 步骤2：偏好设置 ==================== -->
+    <swiper-item>
+      <scroll-view class="swiper-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view class="form-section">
+
+          <!-- ---------- 旅行风格 ---------- -->
+          <!-- 4个胶囊按钮，2行×2列。选中态: 浅蓝底+蓝色边框 -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #8B5CF6"></text>  <!-- 紫色星标图标 -->
+              <text class="card-title">旅行风格</text>
+            </view>
+            <view class="form-card-body">
+              <view class="style-grid">
+                <!-- wx:for遍历styles数组（来自mockFormOptions.styles） -->
+                <!-- wx:key="value": 用value字段作为diff算法的key -->
+                <!-- bindtap: 点击选中该风格 -->
+                <!-- data-value: 传递风格值给JS -->
+                <!-- 三元表达式根据是否选中动态切换class -->
+                <view class="style-item {{selectedStyle === item.value ? 'active' : ''}}" 
+                  wx:for="{{styles}}" wx:key="value" 
+                  bindtap="onSelectStyle" data-value="{{item.value}}">
+                  <text class="ri-icon style-icon {{selectedStyle === item.value ? 'active' : ''}}">{{item.icon}}</text>
+                  <text class="style-label {{selectedStyle === item.value ? 'active' : ''}}">{{item.label}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 兴趣偏好 ---------- -->
+          <!-- 8个方块按钮，2行×4列。多选模式，选中态高亮对应颜色 -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #EF4444"></text>  <!-- 红色爱心图标 -->
+              <text class="card-title">兴趣偏好</text>
+              <text class="card-subtitle">（多选）</text>
+            </view>
+            <view class="form-card-body">
+              <view class="tag-grid">
+                <!-- searchFilter.arrHas: WXS函数，判断 selectedInterests 数组中是否有当前值 -->
+                <!-- 选中时动态设置边框色+背景色(透明度15%) -->
+                <!-- '15' = 15的hex，即背景色加 #15 后缀表示约8%不透明度 -->
+                <view class="interest-tag {{searchFilter.arrHas(selectedInterests, item.value) ? 'active' : ''}}" 
+                  wx:for="{{interests}}" wx:key="value" 
+                  bindtap="onToggleInterest" data-value="{{item.value}}" 
+                  style="{{searchFilter.arrHas(selectedInterests, item.value) ? 'border-color:' + item.color + ';background:' + item.color + '15;' : ''}}">
+                  <text class="ri-icon tag-icon" 
+                    style="color: {{searchFilter.arrHas(selectedInterests, item.value) ? item.color : '#94A3B8'}}">{{item.icon}}</text>
+                  <text class="tag-label" 
+                    style="color: {{searchFilter.arrHas(selectedInterests, item.value) ? item.color : '#64748B'}}">{{item.label}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 预算范围 ---------- -->
+          <!-- 3个选项，水平等分。选中态: 绿色系 -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #22C55E"></text>  <!-- 绿色钱袋图标 -->
+              <text class="card-title">预算范围</text>
+            </view>
+            <view class="form-card-body">
+              <view class="budget-grid">
+                <view class="budget-item {{selectedBudget === item.value ? 'active' : ''}}" 
+                  wx:for="{{budgets}}" wx:key="value" 
+                  bindtap="onSelectBudget" data-value="{{item.value}}">
+                  <text class="budget-label {{selectedBudget === item.value ? 'active' : ''}}">{{item.label}}</text>
+                  <text class="budget-range {{selectedBudget === item.value ? 'active' : ''}}">{{item.range}}</text>
+                </view>
+              </view>
+              <text class="budget-hint">单人单日预算</text>      <!-- 灰色说明文字 -->
+            </view>
+          </view>
+
+          <!-- ---------- 住宿偏好 ---------- -->
+          <!-- 3个胶囊按钮。选中态: 黄色系 -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #F59E0B"></text>  <!-- 黄色建筑图标 -->
+              <text class="card-title">住宿偏好</text>
+            </view>
+            <view class="form-card-body">
+              <view class="accommodation-row">
+                <view class="accommodation-item {{selectedAccommodation === item.value ? 'active' : ''}}" 
+                  wx:for="{{accommodations}}" wx:key="value" 
+                  bindtap="onSelectAccommodation" data-value="{{item.value}}">
+                  <text class="acc-label {{selectedAccommodation === item.value ? 'active' : ''}}">{{item.label}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- ---------- 特殊需求 ---------- -->
+          <!-- textarea: 多行文本输入框 -->
+          <view class="form-card">
+            <view class="form-card-header">
+              <text class="ri-icon card-icon" style="color: #EC4899"></text>  <!-- 粉色笔图标 -->
+              <text class="card-title">特殊需求</text>
+              <text class="card-subtitle">（选填）</text>
+            </view>
+            <view class="form-card-body">
+              <view class="needs-input">
+                <!-- textarea: 特殊需求输入，双向绑定specialNeeds，最多200字 -->
+                <textarea 
+                  placeholder="例如：输入想去的地方系统会优先推荐、需要无障碍设施、有老人同行需要少走路、对某些食物过敏..." 
+                  placeholder-class="needs-placeholder" 
+                  value="{{specialNeeds}}"
+                  bindinput="onNeedsInput"
+                  maxlength="200"
+                  auto-height
+                />
+              </view>
+            </view>
+          </view>
+
+        </view>
+        <view class="bottom-space"></view>
+      </scroll-view>
+    </swiper-item>
+  </swiper>
+
+  <!-- ===== 底部按钮栏 ===== -->
+  <!-- calc(24rpx + 安全区高度): 适配有Home Indicator的iPhone -->
+  <view class="bottom-bar" style="padding-bottom: calc(24rpx + {{safeBottom}}px)">
+    <!-- Step1: 仅显示"下一步"按钮 -->
+    <!-- wx:if 条件渲染：只在此步骤为0时显示此按钮 -->
+    <view class="btn-gradient" wx:if="{{currentStep === 0}}" bindtap="goNext">
+      <text class="btn-text">下一步</text>
+    </view>
+    <!-- Step2: 显示"上一步" + "生成行程"两个按钮 -->
+    <view class="bottom-btns" wx:if="{{currentStep === 1}}">
+      <!-- 灰色次要按钮：返回基本信息 -->
+      <view class="btn-outline" bindtap="goPrev">
+        <text class="btn-text-muted">上一步</text>
+      </view>
+      <!-- 渐变主按钮：提交表单 → 跳转generate页面 -->
+      <!-- flex-1: 占满剩余空间（让生成按钮比上一步大） -->
+      <view class="btn-gradient flex-1" bindtap="onGenerate">
+        <text class="ri-icon btn-icon"></text>                <!-- 星号图标 -->
+        <text class="btn-text">生成行程</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ======================== 城市选择器弹窗 ======================== -->
+<!-- 注意：这部分在 page-create 容器外面（避免被swiper的overflow:hidden裁切） -->
+
+<!-- 半透明黑色遮罩（点击关闭） -->
+<!-- catchtap: 阻止事件继续冒泡（与bindtap的区别：catchtap不冒泡） -->
+<view class="city-picker-mask" wx:if="{{showCityPicker}}" catchtap="onCloseCityPicker"></view>
+
+<!-- 弹窗面板（从底部滑入，占75%屏幕高度） -->
+<!-- catchtap="preventBubble": 点击面板内部不关闭弹窗 -->
+<view class="city-picker-panel {{showCityPicker ? 'active' : ''}}" wx:if="{{showCityPicker}}" catchtap="preventBubble">
+  <!-- 头部 -->
+  <view class="cp-header">
+    <!-- 动态标题：根据cityPickerTarget显示"选择起始城市"或"选择目的城市" -->
+    <text class="cp-title">{{cityPickerTarget === 'origin' ? '选择起始城市' : '选择目的城市'}}</text>
+    <text class="cp-close" bindtap="onCloseCityPicker">✕</text>
+  </view>
+
+  <!-- 搜索框（胶囊形） -->
+  <view class="cp-search-box" catchtap="preventBubble">
+    <text class="ri-icon cp-search-icon"></text>               <!-- 搜索图标 -->
+    <input class="cp-search-input" 
+      value="{{citySearchKeyword}}" 
+      placeholder="搜索城市名称" 
+      placeholder-class="cp-search-placeholder" 
+      bindinput="onCitySearch" />                               <!-- 输入时实时搜索 -->
+  </view>
+
+  <!-- ===== 搜索结果视图 ===== -->
+  <!-- 有搜索关键词时显示，替代下方的城市列表 -->
+  <view class="cp-search-result" wx:if="{{citySearchKeyword.length > 0}}">
+    <!-- block 是一个虚拟容器，不渲染任何DOM，只用于包裹wx:for -->
+    <!-- wx:for遍历 allCitiesFlat（所有城市的扁平列表） -->
+    <block wx:for="{{allCitiesFlat}}" wx:key="name">
+      <!-- searchFilter.includes: WXS函数，城市名包含关键词才显示 -->
+      <view wx:if="{{searchFilter.includes(item.name, citySearchKeyword)}}" 
+        class="cp-city-item" 
+        bindtap="onCitySelect" data-city="{{item.name}}" 
+        catchtap="preventBubble">
+        <text class="cp-city-name">{{item.name}}</text>
+      </view>
+    </block>
+    <!-- 无匹配结果 -->
+    <view class="cp-no-result" wx:if="{{!searchFilter.hasMatch(allCitiesFlat, citySearchKeyword)}}">
+      <text>未找到匹配城市</text>
+    </view>
+  </view>
+
+  <!-- ===== 城市列表视图（无搜索时） ===== -->
+  <view class="cp-body" wx:if="{{citySearchKeyword.length === 0}}">
+    <!-- 热门城市区 -->
+    <view class="cp-section">
+      <text class="cp-section-title">热门城市</text>
+      <view class="cp-hot-grid" catchtap="preventBubble">
+        <!-- 嵌套三元: cityPickerTarget决定比较selectedOrigin还是selectedDest -->
+        <view class="cp-hot-tag {{cityPickerTarget === 'origin' ? (selectedOrigin === item ? 'active' : '') : (selectedDest === item ? 'active' : '')}}" 
+          wx:for="{{hotCities}}" wx:key="*this" 
+          bindtap="onCitySelect" data-city="{{item}}">
+          <text class="cp-hot-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 全国城市按字母分组 -->
+    <view class="cp-section">
+      <text class="cp-section-title">全国城市</text>
+      <!-- A-Z 索引导航 -->
+      <view class="cp-abc-index" catchtap="preventBubble">
+        <text class="cp-abc-letter" 
+          wx:for="{{alphabet}}" wx:key="*this" 
+          bindtap="onAlphabetTap" data-letter="{{item}}">{{item}}</text>
+      </view>
+      <!-- 按字母分组遍历 -->
+      <!-- wx:for-item="letter": 将默认的item变量名改为letter -->
+      <block wx:for="{{alphabet}}" wx:key="*this" wx:for-item="letter">
+        <!-- id="letter-A" → 用于字母索引的scroll-into-view跳转 -->
+        <view class="cp-group" id="letter-{{letter}}">
+          <text class="cp-group-title">{{letter}}</text>
+          <view class="cp-city-grid" catchtap="preventBubble">
+            <!-- cityGroups[letter] 是该字母下的城市数组 -->
+            <!-- wx:for-item="city": 将内层循环的item改为city（避免与外层letter的item冲突） -->
+            <view class="cp-city-tag {{cityPickerTarget === 'origin' ? (selectedOrigin === city ? 'active' : '') : (selectedDest === city ? 'active' : '')}}" 
+              wx:for="{{cityGroups[letter]}}" wx:key="*this" wx:for-item="city" 
+              bindtap="onCitySelect" data-city="{{city}}">
+              <text class="cp-city-text">{{city}}</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

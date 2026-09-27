@@ -1,0 +1,200 @@
+/**
+ * ============================================================================
+ * pages/generate/index.wxss — AI生成中页面样式（173行）
+ * ============================================================================
+ * 核心视觉效果：
+ *   1. AI图标脉冲动画（CSS @keyframes pulse）
+ *   2. 进度步骤列表（圆点状态 + 竖线连接 + 闪烁动画）
+ *   3. 旅行小贴士卡片
+ * ============================================================================
+ */
+
+/* ===== 页面容器 ===== */
+.page-generate {
+  height: 100vh;                                 /* 满屏 */
+  display: flex; flex-direction: column;
+  background: var(--bg-page); overflow: hidden;
+}
+
+/* ===== 导航栏 ===== */
+.nav-header { flex-shrink: 0; background: var(--bg-card); z-index: 100; }
+.nav-header-inner { display: flex; align-items: center; height: 88rpx; padding: 0 32rpx; }
+.nav-back { width: 80rpx; height: 88rpx; display: flex; align-items: center; }
+.nav-back-icon { font-size: 40rpx; color: var(--text-primary); }
+.nav-title { flex: 1; font-size: 34rpx; font-weight: 600; color: var(--text-primary); text-align: center; }
+.nav-right { width: 80rpx; }
+/* 右侧留空，保持标题居中 */
+
+/* ===== 滚动区（内容居中） ===== */
+.main-scroll {
+  flex: 1;                                       /* 占满剩余空间 */
+  padding: 32rpx;
+  display: flex; flex-direction: column;
+  align-items: center;                           /* 所有子元素水平居中 */
+  box-sizing: border-box;
+}
+
+.step-wrap {
+  width: 100%;                                   /* 全宽 */
+  margin-bottom: 64rpx;                          /* 与AI图标之间的大间距 */
+}
+
+/* ===================================================================== */
+/* AI 加载动画（CSS animation）                                          */
+/* ===================================================================== */
+
+.ai-section {
+  display: flex; flex-direction: column;
+  align-items: center;                           /* 图标+标题+副标题 垂直居中 */
+  margin-bottom: 48rpx;
+}
+
+/* AI图标：圆形渐变背景 + 脉冲动画 */
+.ai-icon {
+  width: 160rpx; height: 160rpx;                 /* 80px 大图标 */
+  border-radius: var(--radius-full);              /* 正圆形 */
+  background: var(--gradient-primary);            /* 青蓝渐变 */
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 40rpx;
+  box-shadow: 0 16rpx 48rpx rgba(6,182,212,0.3);  /* 青色发光阴影 */
+}
+
+/* pulse 类名触发动画 */
+.ai-icon.pulse {
+  animation: pulse 2s ease-in-out infinite;       /* 2秒一循环，无限重复 */
+}
+
+/* @keyframes 定义脉冲动画 */
+@keyframes pulse {
+  0%, 100% {                                      /* 开始和结束状态 */
+    transform: scale(1);                          /* 原始大小 */
+    box-shadow: 0 16rpx 48rpx rgba(6,182,212,0.3); /* 原始阴影 */
+  }
+  50% {                                           /* 中间状态（放大+加强阴影） */
+    transform: scale(1.05);                       /* 放大5% */
+    box-shadow: 0 24rpx 64rpx rgba(6,182,212,0.5); /* 阴影更大更明显 */
+  }
+}
+/* 面试考点：animation 的四个值？
+   animation: 动画名 持续时间 缓动函数 重复次数
+   pulse: 动画名
+   2s: 一个循环2秒
+   ease-in-out: 开始和结束缓慢，中间快
+   infinite: 无限循环 */
+
+.ai-icon-text { font-size: 70rpx; color: var(--text-white); }
+/* 白色星号图标 */
+.ai-title { font-size: 36rpx; font-weight: 600; color: var(--text-primary); margin-bottom: 8rpx; }
+.ai-subtitle { font-size: 26rpx; color: var(--text-muted); }
+
+/* 模式标签：backend=绿色"AI实时生成", mock=黄色"模拟演示" */
+.mode-tag { font-size: 22rpx; padding: 4rpx 12rpx; border-radius: 20rpx; margin-left: 10rpx; }
+.mode-tag.backend { background: #D1FAE5; color: #059669; }   /* 绿色系 */
+.mode-tag.mock { background: #FEF3C7; color: #D97706; }      /* 黄色系 */
+
+/* ===== 进度步骤卡片 ===== */
+.progress-card {
+  width: 100%;                                   /* 全宽 */
+  background: var(--bg-card); border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light); box-shadow: var(--shadow-sm);
+  padding: 40rpx; margin-bottom: 40rpx; box-sizing: border-box;
+}
+
+/* 每一步 */
+.progress-item {
+  display: flex; align-items: center;
+  margin-bottom: 32rpx;                          /* 步骤间距 */
+  position: relative;                            /* 为 ::after 竖线提供定位 */
+}
+
+/* 步骤之间的竖线连接线（伪元素 ::after） */
+/* :not(:last-child) → 只有非最后一项才有连接线 */
+.progress-item:not(:last-child)::after {
+  content: '';                                   /* 伪元素必须有 content */
+  position: absolute;                            /* 相对于 .progress-item */
+  left: 24rpx;                                   /* 圆点中心位置（48rpx宽的一半） */
+  top: 48rpx;                                    /* 从圆点底部开始 */
+  width: 6rpx;                                   /* 竖线宽度 */
+  height: 40rpx;                                 /* 竖线高度 = 覆盖到下一步圆点 */
+  background: var(--border-default);             /* 浅灰色 */
+}
+
+/* 状态圆点：综合样式 */
+.progress-dot {
+  width: 48rpx; height: 48rpx;                   /* 24px圆点 */
+  border-radius: var(--radius-full);              /* 圆形 */
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;                                /* 固定大小 */
+  z-index: 2;                                    /* 在竖线之上 */
+}
+
+/* 三种状态的颜色 */
+.progress-dot.completed { background: var(--color-success); }    /* 绿色 ✓ */
+.progress-dot.loading { background: var(--color-primary); }      /* 蓝色(旋转动画) */
+.progress-dot.waiting { background: var(--border-default); }     /* 灰色圆点 */
+
+.progress-check { font-size: 28rpx; color: var(--text-white); }
+/* 完成状态的白色对勾 */
+
+/* loading状态：白色小圆点 + 闪烁动画 */
+.progress-loading {
+  width: 24rpx; height: 24rpx;
+  background: var(--text-white);
+  border-radius: var(--radius-full);
+  animation: blink 0.8s ease-in-out infinite;    /* 0.8秒闪烁循环 */
+  opacity: 0.9;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }   /* 开始：半透明+缩小 */
+  50% { opacity: 1; transform: scale(1); }              /* 中间：全亮+放大 */
+}
+/* 闪烁效果：让用户感知"正在处理中" */
+
+/* waiting状态：灰色实心小圆点 */
+.progress-wait {
+  width: 20rpx; height: 20rpx;
+  background: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+
+.progress-info { flex: 1; margin-left: 24rpx; }
+/* 步骤文字区域 */
+
+.progress-text { font-size: 28rpx; font-weight: 500; }
+.progress-text.completed { color: var(--color-success); }     /* 绿色文字 */
+.progress-text.loading { color: var(--color-primary); }       /* 蓝色文字 */
+.progress-text.waiting { color: var(--text-muted); font-weight: 400; } /* 灰色文字 */
+
+.progress-status { font-size: 24rpx; flex-shrink: 0; }
+/* 右侧状态文字 */
+.progress-status.completed { color: var(--color-success); }
+.progress-status.loading { color: var(--color-primary); }
+.progress-status.waiting { color: var(--text-muted); }
+
+/* ===== 旅行小贴士卡片 ===== */
+.tips-card {
+  width: 100%;
+  display: flex;                                 /* 图标+内容横向排列 */
+  background: var(--color-blue-light);            /* 浅蓝色背景 */
+  border: 1rpx solid var(--color-blue-border);
+  border-radius: var(--radius-md); padding: 32rpx; box-sizing: border-box;
+}
+
+.tips-card-icon { font-size: 36rpx; color: var(--color-blue); margin-right: 24rpx; flex-shrink: 0; }
+.tips-card-content { flex: 1; }
+.tips-card-title { font-size: 26rpx; font-weight: 500; color: var(--color-blue); display: block; margin-bottom: 4rpx; }
+.tips-card-text { font-size: 24rpx; color: var(--text-secondary); line-height: 1.5; }
+/* line-height:1.5 → 行高1.5倍，多行文字阅读更舒适 */
+
+/* ===== 底部AI免责声明 ===== */
+.bottom-note {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40rpx 0;
+  margin-top: auto;                              /* 自动推到最底部 */
+  /* margin-top:auto → 在flex布局中把元素推到剩余空间的末尾 */
+}
+
+.bottom-note-icon { font-size: 24rpx; color: var(--text-muted); margin-right: 8rpx; }
+.bottom-note-text { font-size: 22rpx; color: var(--text-muted); }
+/* 最弱地灰色 + 最小字号 → 不抢夺用户注意力 */

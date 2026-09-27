@@ -1,0 +1,20 @@
+<view class="tab-bar" wx:if="{{show}}">
+  <view 
+    class="tab-item {{selected === 0 ? 'active' : ''}}"
+    bindtap="switchTab"
+    data-index="0"
+    data-path="/pages/index/index"
+  >
+    <text class="ri-icon tab-icon"></text>
+    <text class="tab-text">首页</text>
+  </view>
+  <view 
+    class="tab-item {{selected === 1 ? 'active' : ''}}"
+    bindtap="switchTab"
+    data-index="1"
+    data-path="/pages/my/index"
+  >
+    <text class="ri-icon tab-icon"></text>
+    <text class="tab-text">我的</text>
+  </view>
+</view>

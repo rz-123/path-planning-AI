@@ -1,0 +1,40 @@
+# ===== 敏感信息（严禁提交） =====
+.env
+*.env
+!.env.example
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ===== 数据库 / 运行时数据 =====
+backend/data/
+*.db
+*.sqlite3
+
+# ===== Node.js =====
+node_modules/
+npm-debug.log*
+
+# ===== 微信小程序 =====
+project.private.config.json
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ===== 系统文件 =====
+Thumbs.db
+desktop.ini

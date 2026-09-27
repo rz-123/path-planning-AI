@@ -1,0 +1,7 @@
+<view class="dest-card">
+  <image class="dest-img" src="{{dest.image}}" mode="aspectFill" />
+  <view class="dest-info">
+    <text class="dest-name">{{dest.name}}</text>
+    <text class="dest-tags">{{dest.tags}}</text>
+  </view>
+</view>

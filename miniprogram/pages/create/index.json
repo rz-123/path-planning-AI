@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "step-indicator": "/components/step-indicator/index"
+  }
+}

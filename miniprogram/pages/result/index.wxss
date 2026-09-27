@@ -1,0 +1,878 @@
+.page-result {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+/* ===== 自定义导航栏 ===== */
+.r-header {
+  flex-shrink: 0;
+  background: var(--bg-card);
+  z-index: 100;
+}
+
+.r-header-inner {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 32rpx;
+}
+
+.r-header-back {
+  width: 80rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+}
+
+.r-back-icon {
+  font-size: 40rpx;
+  color: var(--text-primary);
+}
+
+.r-header-title {
+  flex: 1;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.r-header-right {
+  width: 80rpx;
+  display: flex;
+  justify-content: flex-end;
+  gap: 24rpx;
+}
+
+.r-h-icon {
+  font-size: 40rpx;
+  color: var(--text-primary);
+}
+
+/* ===== 行程头部 ===== */
+.trip-summary {
+  flex-shrink: 0;
+  background: var(--bg-card);
+  padding: 0 32rpx 24rpx;
+}
+
+.trip-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 24rpx;
+}
+
+.trip-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+}
+
+.meta-icon {
+  font-size: 28rpx;
+  color: var(--text-muted);
+  margin-right: 8rpx;
+}
+
+.meta-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.trip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  padding: 8rpx 16rpx;
+  border-radius: var(--radius-sm);
+}
+.tag-item:nth-child(1) { background: #FEF2F2; }
+.tag-item:nth-child(2) { background: #EFF6FF; }
+.tag-item:nth-child(3) { background: #FFF7ED; }
+.tag-item:nth-child(4) { background: #F0FDF4; }
+
+.tag-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+.tag-item:nth-child(1) .tag-text { color: #EF4444; }
+.tag-item:nth-child(2) .tag-text { color: #3B82F6; }
+.tag-item:nth-child(3) .tag-text { color: #F97316; }
+.tag-item:nth-child(4) .tag-text { color: #10B981; }
+
+/* ===== 实时天气条 ===== */
+.weather-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 12rpx 32rpx;
+  background: linear-gradient(135deg, #E0F2FE, #BAE6FD);
+  border-top: 1rpx solid #7DD3FC;
+}
+
+.weather-bar-icon {
+  font-size: 32rpx;
+}
+
+.weather-bar-text {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #0369A1;
+}
+
+.weather-bar-divider {
+  font-size: 20rpx;
+  color: #7DD3FC;
+}
+
+/* ===== 标签切换栏 ===== */
+.tab-switch {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--bg-card);
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+}
+
+.tab-text {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.tab-text.active {
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+
+.tab-line {
+  width: 50rpx;
+  height: 6rpx;
+  background: var(--color-primary);
+  border-radius: 3rpx;
+  margin-top: 12rpx;
+}
+
+/* ===== Swiper（flex: 1 自动填充剩余高度） ===== */
+.main-swiper {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 行程视图 */
+.itinerary-scroll {
+  height: 100%;
+  padding: 24rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.date-selector {
+  white-space: nowrap;
+  margin-bottom: 32rpx;
+  padding-bottom: 8rpx;
+}
+
+.date-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 24rpx;
+  margin-right: 16rpx;
+  border: 1rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  min-width: 140rpx;
+}
+
+.date-pill.active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+}
+
+.date-pill-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.date-pill-date {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.date-pill.active .date-pill-date {
+  color: var(--color-primary-dark);
+}
+
+.date-pill-day {
+  font-size: 20rpx;
+  color: var(--text-muted);
+}
+
+/* 天气图标 */
+.date-pill-weather {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  margin-top: 6rpx;
+}
+
+.weather-icon {
+  font-size: 28rpx;
+}
+
+.weather-temp {
+  font-size: 20rpx;
+  color: var(--text-secondary);
+}
+
+.weather-temp.historical {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.date-pill-historical {
+  margin-top: 2rpx;
+}
+
+.historical-note {
+  font-size: 16rpx;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.date-pill-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.date-pill.active .date-pill-text {
+  color: var(--color-primary-dark);
+}
+
+/* 地图区 */
+.map-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+}
+
+.map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.map-title-area {
+  display: flex;
+  align-items: center;
+}
+
+.map-icon-box {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: var(--radius-full);
+  background: #CFFAFE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+}
+
+.map-icon {
+  font-size: 28rpx;
+  color: #0891B2;
+}
+
+.map-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.map-more {
+  font-size: 26rpx;
+  color: var(--text-muted);
+}
+
+/* 地图组件 */
+.route-map {
+  width: 100%;
+  height: 420rpx;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.map-hint {
+  font-size: 24rpx;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 6rpx 16rpx;
+  border-radius: var(--radius-full);
+}
+
+/* 地图占位符（无坐标时显示） */
+.map-placeholder {
+  width: 100%;
+  height: 280rpx;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #F1F5F9, #E2E8F0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #CBD5E1;
+}
+
+.map-ph-icon {
+  font-size: 56rpx;
+  color: #94A3B8;
+  margin-bottom: 12rpx;
+}
+
+.map-ph-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #64748B;
+  margin-bottom: 6rpx;
+}
+
+.map-ph-sub {
+  font-size: 22rpx;
+  color: #94A3B8;
+}
+
+/* 时间线 */
+.timeslot-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.timeslot-icon-box {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+}
+
+.timeslot-icon {
+  font-size: 24rpx;
+}
+
+.timeslot-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timeslot-spacer {
+  margin-bottom: 24rpx;
+}
+
+.timeline-wrap {
+  position: relative;
+  padding-left: 64rpx;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 18rpx;
+  top: 0;
+  width: 6rpx;
+  height: 100%;
+  background: var(--border-default);
+}
+
+/* ===== 预算视图 ===== */
+.budget-scroll {
+  height: 100%;
+  padding: 24rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.budget-header {
+  background: var(--gradient-primary);
+  border-radius: var(--radius-xl);
+  padding: 40rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.budget-label {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 12rpx;
+}
+
+.budget-total {
+  font-size: 88rpx;
+  font-weight: 700;
+  color: var(--text-white);
+  line-height: 1.1;
+  margin-bottom: 12rpx;
+}
+
+.budget-per-person {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+}
+
+/* 预算构成 */
+.budget-composition {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  padding: 32rpx;
+  margin-bottom: 40rpx;
+}
+
+.comp-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 32rpx;
+}
+
+.pie-legend-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40rpx;
+}
+
+.pie-container {
+  position: relative;
+  width: 240rpx;
+  height: 240rpx;
+  flex-shrink: 0;
+}
+
+.pie-canvas {
+  width: 240rpx;
+  height: 240rpx;
+}
+
+.pie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.legend-list {
+  flex: 1;
+  margin-left: 32rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.legend-dot {
+  width: 28rpx;
+  height: 24rpx;
+  border-radius: var(--radius-full);
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.legend-amount {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.budget-note {
+  display: flex;
+  background: var(--color-blue-light);
+  border-radius: var(--radius-sm);
+  padding: 24rpx;
+}
+
+.note-icon {
+  font-size: 32rpx;
+  color: var(--color-blue);
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.note-text {
+  font-size: 24rpx;
+  color: #1E40AF;
+  line-height: 1.4;
+  flex: 1;
+}
+
+/* 明细列表 */
+.detail-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 32rpx;
+}
+
+.detail-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 32rpx;
+  overflow: hidden;
+}
+
+.detail-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+}
+
+.detail-card-left {
+  display: flex;
+  align-items: center;
+}
+
+.dc-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+
+.dc-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dc-total {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.detail-items {
+  padding: 0 32rpx 24rpx;
+}
+
+.detail-items.collapsed {
+  display: none;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--border-light);
+}
+
+.di-info {
+  flex: 1;
+}
+
+.di-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.di-desc {
+  font-size: 24rpx;
+  color: var(--text-muted);
+}
+
+.di-amount {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.detail-tips {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 32rpx 24rpx;
+}
+
+.dt-icon {
+  font-size: 32rpx;
+  color: var(--color-warning);
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.dt-text {
+  font-size: 24rpx;
+  color: #D97706;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.detail-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  background: var(--bg-input);
+  border-top: 1rpx solid var(--border-light);
+}
+
+.toggle-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  margin-right: 8rpx;
+}
+
+.toggle-icon {
+  font-size: 28rpx;
+  color: var(--text-muted);
+}
+
+/* 节省建议 */
+.save-tips-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  padding: 32rpx;
+  margin-bottom: 40rpx;
+}
+
+.save-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.save-icon {
+  font-size: 36rpx;
+  color: var(--color-warning);
+  margin-right: 16rpx;
+}
+
+.save-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.save-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.save-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.save-num {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: var(--radius-full);
+  background: #FEF3C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #D97706;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.save-text {
+  font-size: 26rpx;
+  color: var(--text-primary);
+  line-height: 1.5;
+  flex: 1;
+}
+
+/* ===== 底部操作栏 ===== */
+.result-bottom-bar {
+  flex-shrink: 0;
+  display: flex;
+  gap: 24rpx;
+  padding: 24rpx 32rpx;
+  background: var(--bg-card);
+  border-top: 1rpx solid var(--border-light);
+}
+
+.bottom-regenerate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 24rpx;
+}
+
+.regen-icon {
+  font-size: 32rpx;
+  color: var(--text-secondary);
+  margin-right: 16rpx;
+}
+
+.regen-text {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.bottom-save {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-md);
+  padding: 24rpx;
+}
+
+.save-btn-icon {
+  font-size: 32rpx;
+  color: var(--text-white);
+  margin-right: 16rpx;
+}
+
+.save-btn-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.bottom-space {
+  height: 48rpx;
+}
+
+/* 推荐酒店卡片 */
+.hotel-card {
+  background: #FFFBEB;
+  border-radius: 12rpx;
+  border: 1rpx solid #FDE68A;
+  padding: 24rpx;
+  margin-top: 32rpx;
+}
+
+.hotel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.hotel-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.hotel-icon {
+  font-size: 32rpx;
+  color: #F59E0B;
+  margin-right: 10rpx;
+}
+
+.hotel-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.hotel-price {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #D97706;
+}
+
+.hotel-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.hotel-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 4rpx;
+}
+
+.hotel-address {
+  font-size: 24rpx;
+  color: #64748B;
+  margin-bottom: 12rpx;
+}
+
+.hotel-tags {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.hotel-tag {
+  font-size: 22rpx;
+  color: #B45309;
+  background: #FEF3C7;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-right: 12rpx;
+  margin-bottom: 6rpx;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

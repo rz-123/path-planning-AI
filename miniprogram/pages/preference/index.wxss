@@ -1,0 +1,89 @@
+.page-pref {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+/* 导航栏 */
+.nav-header { flex-shrink: 0; background: var(--bg-card); z-index: 100; }
+.nav-header-inner { display: flex; align-items: center; height: 88rpx; padding: 0 32rpx; }
+.nav-back { width: 80rpx; height: 88rpx; display: flex; align-items: center; }
+.nav-back-icon { font-size: 40rpx; color: var(--text-primary); }
+.nav-title { flex: 1; font-size: 34rpx; font-weight: 600; color: var(--text-primary); text-align: center; }
+.nav-right { width: 80rpx; display: flex; align-items: center; justify-content: flex-end; }
+.nav-right-icon { font-size: 40rpx; color: var(--text-primary); }
+
+/* 滚动区 */
+.main-scroll { flex: 1; padding: 32rpx; box-sizing: border-box; }
+.step-wrap { margin-bottom: 48rpx; }
+
+/* 表单 */
+.form-section { display: flex; flex-direction: column; gap: 32rpx; }
+.form-card { background: var(--bg-card); border-radius: var(--radius-md); border: 1rpx solid var(--border-light); box-shadow: var(--shadow-sm); padding: 32rpx; }
+.form-card-header { display: flex; align-items: center; margin-bottom: 32rpx; }
+.card-icon { font-size: 36rpx; margin-right: 16rpx; }
+.card-title { font-size: 32rpx; font-weight: 600; color: var(--text-primary); }
+.card-subtitle { font-size: 24rpx; color: var(--text-muted); margin-left: 8rpx; }
+
+/* 旅行风格 */
+.style-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.style-item { display: flex; align-items: center; justify-content: center; width: calc(50% - 8rpx); height: 86rpx; border: 1rpx solid var(--border-default); border-radius: var(--radius-full); background: var(--bg-card); }
+.style-item.active { background: var(--color-primary-light); border-color: var(--color-primary); }
+.style-icon { font-size: 28rpx; color: var(--text-muted); margin-right: 12rpx; }
+.style-icon.active { color: var(--color-primary-dark); }
+.style-label { font-size: 26rpx; color: var(--text-secondary); font-weight: 500; }
+.style-label.active { color: var(--color-primary-dark); }
+
+/* 兴趣标签 */
+.tag-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.interest-tag { display: flex; align-items: center; border: 1rpx solid var(--border-default); border-radius: var(--radius-full); padding: 12rpx 24rpx; background: var(--bg-card); }
+.tag-icon { font-size: 28rpx; margin-right: 8rpx; }
+.tag-label { font-size: 26rpx; font-weight: 500; }
+
+/* 预算 */
+.budget-grid { display: flex; gap: 16rpx; }
+.budget-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1rpx solid var(--border-default); border-radius: var(--radius-md); padding: 24rpx 0; background: var(--bg-card); }
+.budget-item.active { background: var(--color-success-bg); border-color: var(--color-success); }
+.budget-label { font-size: 28rpx; font-weight: 600; color: var(--text-secondary); margin-bottom: 4rpx; }
+.budget-label.active { color: var(--color-success); }
+.budget-range { font-size: 24rpx; color: var(--text-muted); }
+.budget-range.active { color: var(--color-success); }
+
+/* 住宿 */
+.accommodation-row { display: flex; gap: 16rpx; }
+.accommodation-item { flex: 1; display: flex; align-items: center; justify-content: center; border: 1rpx solid var(--border-default); border-radius: var(--radius-full); padding: 20rpx 0; background: var(--bg-card); }
+.accommodation-item.active { background: var(--color-warning-bg); border-color: var(--color-warning); }
+.acc-label { font-size: 26rpx; color: var(--text-secondary); font-weight: 500; }
+.acc-label.active { color: #D97706; }
+
+/* 特殊需求 */
+.needs-input { background: var(--bg-input); border: 1rpx solid var(--border-default); border-radius: var(--radius-sm); padding: 24rpx; }
+.needs-input textarea { width: 100%; min-height: 160rpx; font-size: 28rpx; color: var(--text-primary); }
+.needs-placeholder { color: var(--text-muted); }
+
+/* 底部按钮 */
+.bottom-bar { flex-shrink: 0; padding: 32rpx; background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
+.bottom-btns { display: flex; gap: 24rpx; }
+
+.btn-outline {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-input); border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-default); padding: 28rpx 48rpx;
+}
+
+.btn-text { font-size: 30rpx; font-weight: 500; color: var(--text-secondary); }
+
+.btn-gradient {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gradient-primary); border-radius: var(--radius-md); padding: 28rpx;
+}
+
+.btn-icon { font-size: 32rpx; color: var(--text-white); margin-right: 16rpx; }
+
+.btn-text-white { font-size: 30rpx; font-weight: 600; color: var(--text-white); }
+
+.flex-1 { flex: 1; }
+
+.bottom-space { height: 48rpx; }

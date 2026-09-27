@@ -1,0 +1,150 @@
+<wxs module="utils">
+module.exports = {
+  arrayContains: function(arr, val) {
+    if (!arr) return false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] === val) return true;
+    }
+    return false;
+  }
+};
+</wxs>
+<view class="page-pref">
+  <!-- 顶部导航栏 -->
+  <view class="nav-header" style="padding-top: {{safeTop}}px">
+    <view class="nav-header-inner">
+      <view class="nav-back" bindtap="onBack">
+        <text class="ri-icon nav-back-icon"></text>
+      </view>
+      <text class="nav-title">创建我的行程</text>
+      <view class="nav-right">
+        <text class="ri-icon nav-right-icon"></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 主滚动区 -->
+  <scroll-view class="main-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="step-wrap">
+      <step-indicator steps="{{stepData}}" />
+    </view>
+
+    <view class="form-section">
+      <!-- 旅行风格 -->
+      <view class="form-card">
+        <view class="form-card-header">
+          <text class="ri-icon card-icon" style="color: #8B5CF6"></text>
+          <text class="card-title">旅行风格</text>
+        </view>
+        <view class="form-card-body">
+          <view class="style-grid">
+            <view 
+              class="style-item {{selectedStyle === item.value ? 'active' : ''}}"
+              wx:for="{{styles}}" wx:key="value"
+              bindtap="onSelectStyle" data-value="{{item.value}}"
+            >
+              <text class="ri-icon style-icon {{selectedStyle === item.value ? 'active' : ''}}">{{item.icon}}</text>
+              <text class="style-label {{selectedStyle === item.value ? 'active' : ''}}">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 兴趣偏好 -->
+      <view class="form-card">
+        <view class="form-card-header">
+          <text class="ri-icon card-icon" style="color: #EF4444"></text>
+          <text class="card-title">兴趣偏好</text>
+          <text class="card-subtitle">（多选）</text>
+        </view>
+        <view class="form-card-body">
+          <view class="tag-grid">
+            <view 
+              class="interest-tag {{utils.arrayContains(selectedInterests, item.value) ? 'active' : ''}}"
+              wx:for="{{interests}}" wx:key="value"
+              bindtap="onToggleInterest" data-value="{{item.value}}"
+              style="{{utils.arrayContains(selectedInterests, item.value) ? 'border-color: ' + item.color + '; background: ' + item.color + '15' : ''}}"
+            >
+              <text class="ri-icon tag-icon" style="color: {{utils.arrayContains(selectedInterests, item.value) ? item.color : '#94A3B8'}}">{{item.icon}}</text>
+              <text class="tag-label" style="color: {{utils.arrayContains(selectedInterests, item.value) ? item.color : '#64748B'}}">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 预算 -->
+      <view class="form-card">
+        <view class="form-card-header">
+          <text class="ri-icon card-icon" style="color: #22C55E"></text>
+          <text class="card-title">预算范围</text>
+        </view>
+        <view class="form-card-body">
+          <view class="budget-grid">
+            <view 
+              class="budget-item {{selectedBudget === item.value ? 'active' : ''}}"
+              wx:for="{{budgets}}" wx:key="value"
+              bindtap="onSelectBudget" data-value="{{item.value}}"
+            >
+              <text class="budget-label {{selectedBudget === item.value ? 'active' : ''}}">{{item.label}}</text>
+              <text class="budget-range {{selectedBudget === item.value ? 'active' : ''}}">{{item.range}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 住宿 -->
+      <view class="form-card">
+        <view class="form-card-header">
+          <text class="ri-icon card-icon" style="color: #F59E0B"></text>
+          <text class="card-title">住宿偏好</text>
+        </view>
+        <view class="form-card-body">
+          <view class="accommodation-row">
+            <view 
+              class="accommodation-item {{selectedAccommodation === item.value ? 'active' : ''}}"
+              wx:for="{{accommodations}}" wx:key="value"
+              bindtap="onSelectAccommodation" data-value="{{item.value}}"
+            >
+              <text class="acc-label {{selectedAccommodation === item.value ? 'active' : ''}}">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 特殊需求 -->
+      <view class="form-card">
+        <view class="form-card-header">
+          <text class="ri-icon card-icon" style="color: #EC4899"></text>
+          <text class="card-title">特殊需求</text>
+          <text class="card-subtitle">（选填）</text>
+        </view>
+        <view class="form-card-body">
+          <view class="needs-input">
+            <textarea
+              placeholder="例如：需要无障碍设施、有老人同行需要少走路、对某些食物过敏..."
+              placeholder-class="needs-placeholder"
+              value="{{specialNeeds}}"
+              bindinput="onNeedsInput"
+              maxlength="200"
+              auto-height
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="bottom-space"></view>
+  </scroll-view>
+
+  <!-- 底部按钮组 -->
+  <view class="bottom-bar" style="padding-bottom: calc(32rpx + {{safeBottom}}px)">
+    <view class="bottom-btns">
+      <view class="btn-outline" bindtap="onPrev">
+        <text class="btn-text">上一步</text>
+      </view>
+      <view class="btn-gradient flex-1" bindtap="onGenerate">
+        <text class="ri-icon btn-icon"></text>
+        <text class="btn-text-white">生成行程</text>
+      </view>
+    </view>
+  </view>
+</view>

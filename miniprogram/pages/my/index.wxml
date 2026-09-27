@@ -1,0 +1,113 @@
+<!--
+============================================================================
+pages/my/index.wxml — "我的"页面模板
+============================================================================
+布局结构：
+  导航栏 → 滚动区(用户卡片 → 统计面板 → 快速操作 → 历史行程列表 → 空状态)
+============================================================================
+-->
+<view class="page-my">
+  <!-- 顶部导航栏 -->
+  <view class="nav-header" style="padding-top: {{safeTop}}px">
+    <view class="nav-header-inner">
+      <text class="nav-title">我的</text>
+      <view class="nav-right">
+        <text class="ri-icon nav-right-icon"></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 主滚动区 -->
+  <scroll-view class="main-scroll" scroll-y enhanced show-scrollbar="{{false}}" 
+    style="padding-bottom: calc(100rpx + {{safeBottom}}px + 32rpx)">
+    
+    <!-- === 用户信息卡片 === -->
+    <!-- 头像 + 昵称 + ID（后续可接入微信用户信息展示真实头像） -->
+    <view class="user-card">
+      <view class="user-avatar">
+        <text class="ri-icon avatar-icon"></text>   <!-- 默认头像图标 -->
+      </view>
+      <text class="user-name">旅行者</text>
+      <text class="user-id">ID: travel_2025</text>
+    </view>
+
+    <!-- === 统计面板 === -->
+    <!-- 3 个统计项：行程数 / 天数 / 最爱目的地，用竖线分隔 -->
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-num">{{totalTrips}}</text>
+        <text class="stat-label">规划行程</text>
+      </view>
+      <view class="stat-divider"></view>              <!-- 竖线分隔 -->
+      <view class="stat-item">
+        <text class="stat-num">{{totalDays}}</text>
+        <text class="stat-label">旅行天数</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-num">{{favoriteDest || '--'}}</text>
+        <text class="stat-label">最爱目的地</text>
+      </view>
+    </view>
+
+    <!-- === 快速操作：新建行程 === -->
+    <view class="quick-action" bindtap="onNewPlan">
+      <view class="qa-left">
+        <view class="qa-icon-box">
+          <text class="ri-icon qa-icon"></text>       <!-- 带加号的文件图标 -->
+        </view>
+        <view class="qa-info">
+          <text class="qa-title">开始新规划</text>
+          <text class="qa-desc">AI为你定制专属行程</text>
+        </view>
+      </view>
+      <text class="ri-icon qa-arrow"></text>          <!-- 右箭头 -->
+    </view>
+
+    <!-- === 历史行程列表 === -->
+    <view class="section" wx:if="{{historyTrips.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">近30天行程记录</text>
+        <text class="section-count">{{historyTrips.length}}条</text>
+      </view>
+
+      <view class="history-list">
+        <view class="history-card" 
+          wx:for="{{historyTrips}}" 
+          wx:key="id"
+          bindtap="onTapTrip"
+          data-trip="{{item}}"
+        >
+          <!-- 左侧：日期方块 -->
+          <view class="hc-left">
+            <view class="hc-date-box">
+              <text class="hc-month">{{item.month}}</text>  <!-- 如 "6月" -->
+              <text class="hc-day">{{item.day}}</text>      <!-- 如 "15" -->
+            </view>
+          </view>
+          <!-- 右侧：行程信息 -->
+          <view class="hc-body">
+            <view class="hc-top">
+              <text class="hc-title">{{item.title}}</text>
+              <view class="hc-status {{item.status}}">
+                <text class="hc-status-text">{{item.statusText}}</text>
+              </view>
+            </view>
+            <text class="hc-meta">{{item.startDate}} - {{item.endDate}} | {{item.people}}人 | {{item.tags}}</text>
+            <view class="hc-bottom">
+              <text class="hc-budget">¥{{item.budget}}</text>
+              <text class="ri-icon hc-arrow"></text>      <!-- 右箭头：暗示可点击 -->
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态：无行程数据时的引导 -->
+    <view class="empty-state" wx:if="{{historyTrips.length === 0}}">
+      <text class="ri-icon empty-icon"></text>
+      <text class="empty-title">还没有行程记录</text>
+      <text class="empty-desc">点击上方开始规划你的第一次旅行吧</text>
+    </view>
+  </scroll-view>
+</view>

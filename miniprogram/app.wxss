@@ -1,0 +1,240 @@
+/**
+ * ============================================================================
+ * app.wxss — 微信小程序全局样式表
+ * ============================================================================
+ * WXSS 是微信小程序的样式语言，基本等同于 CSS + 新增的 rpx 单位
+ * 
+ * 核心概念：
+ *   - rpx (responsive pixel): 响应式像素，750rpx = 屏幕宽度，自动适配不同设备
+ *   - 全局样式：app.wxss 中的样式对所有页面生效
+ *   - 页面样式：pages/xxx/index.wxss 中的样式只对当前页面生效
+ *   - CSS 变量 (--var): 在 page 选择器中定义，所有子元素自动继承
+ * 
+ * 为什么用 CSS 变量（自定义属性）？
+ *   - 统一设计系统：一次定义，全局复用
+ *   - 方便换主题：只需修改变量值
+ *   - 子元素自动继承：不需要在每个组件中重复定义颜色
+ * ============================================================================
+ */
+
+/* ===== remixicon 图标字体引入 ===== */
+/* @font-face: CSS3 自定义字体声明，加载远程字体文件到本地使用 */
+/* remixicon 是开源图标库，相当于 Font Awesome 的替代品 */
+/* 加载后可以用 .ri-icon 类名 + Unicode 字符显示图标 */
+@font-face {
+  font-family: 'remixicon';                                    /* 字体族名称 */
+  src: url('https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ===== CSS 变量（设计系统） ===== */
+/* page 选择器：微信小程序中代表整个页面根元素 */
+/* 所有在此定义的 CSS 变量会传递给所有子元素 */
+page {
+  /* --- 主色调 (Cyan) --- */
+  --color-primary: #06B6D4;              /* 主色：青蓝色 */
+  --color-primary-dark: #0891B2;         /* 深色变体：用于文字和强调 */
+  --color-primary-light: #ECFEFF;        /* 浅色变体：用于背景 */
+  --color-primary-border: #A5F3FC;       /* 边框色 */
+  --color-blue: #3B82F6;                 /* 蓝色系：用于预算/链接 */
+  --color-blue-light: #EFF6FF;           /* 蓝色浅底 */
+  --color-blue-border: #BFDBFE;
+
+  /* --- 背景色 --- */
+  --bg-page: #F8FAFC;                    /* 页面背景：浅灰白 */
+  --bg-card: #FFFFFF;                    /* 卡片背景：纯白 */
+  --bg-input: #F8FAFC;                   /* 输入框背景：比卡片稍灰 */
+
+  /* --- 文字色 --- */
+  --text-primary: #1E293B;               /* 主文字：深色，用于标题/正文 */
+  --text-secondary: #64748B;             /* 次要文字：灰色，用于描述 */
+  --text-muted: #94A3B8;                /* 占位文字：更浅的灰 */
+  --text-white: #FFFFFF;                 /* 白色文字：用于深色背景上的文字 */
+
+  /* --- 功能色 --- */
+  --color-success: #22C55E;              /* 成功/绿色：用于价格、完成状态 */
+  --color-success-bg: #F0FDF4;
+  --color-warning: #F59E0B;              /* 警告/黄色：用于提示 */
+  --color-warning-bg: #FFFBEB;
+  --color-danger: #EF4444;               /* 危险/红色：用于错误 */
+  --color-danger-bg: #FEF2F2;
+  --color-orange: #F97316;               /* 橙色：用于餐饮相关 */
+  --color-orange-bg: #FFF7ED;
+  --color-purple: #8B5CF6;               /* 紫色：用于夜景/艺术 */
+  --color-purple-bg: #F5F3FF;
+
+  /* --- 圆角 --- */
+  --radius-sm: 8rpx;                     /* 小圆角：标签、小按钮 */
+  --radius-md: 12rpx;                    /* 中圆角：卡片、列表项 */
+  --radius-lg: 16rpx;                    /* 大圆角：大卡片 */
+  --radius-xl: 24rpx;                    /* 超大圆角：Banner */
+  --radius-full: 9999rpx;               /* 全圆角：胶囊形状 */
+
+  /* --- 阴影 --- */
+  --shadow-sm: 0 1rpx 2rpx rgba(0,0,0,0.05);   /* 小阴影：轻微浮起 */
+  --shadow-md: 0 2rpx 8rpx rgba(0,0,0,0.06);   /* 中阴影：卡片效果 */
+  --shadow-lg: 0 4rpx 16rpx rgba(0,0,0,0.08);   /* 大阴影：弹出层 */
+
+  /* --- 边框 --- */
+  --border-light: #F1F5F9;               /* 浅边框：几乎看不见的分隔 */
+  --border-default: #E2E8F0;             /* 默认边框 */
+
+  /* --- 渐变 --- */
+  --gradient-primary: linear-gradient(135deg, #06B6D4, #3B82F6);  /* 主渐变：青→蓝 */
+  --gradient-success: linear-gradient(135deg, #22C55E, #16A34A);  /* 成功渐变 */
+
+  /* --- 间距 --- */
+  --spacing-xs: 8rpx;
+  --spacing-sm: 12rpx;
+  --spacing-md: 16rpx;
+  --spacing-lg: 24rpx;
+  --spacing-xl: 32rpx;
+
+  /* --- 安全区（运行时由 app.js 动态注入） --- */
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+
+  /* --- 布局尺寸 --- */
+  --header-height: 88rpx;                /* 自定义导航栏标准高度 44px */
+  --tabbar-height: 100rpx;               /* 原生 TabBar 标准高度 */
+
+  /* ===== 页面基础设置 ===== */
+  height: 100vh;                         /* 占满视口高度（防止滚动穿透） */
+  background-color: var(--bg-page);       /* 统一页面背景色 */
+  /* 字体回退策略：系统默认 → 苹方 → 思源黑体 → Helvetica → 无衬线 */
+  font-family: -apple-system, 'PingFang SC', 'SourceHanSansCN', 'Helvetica Neue', sans-serif;
+  font-size: 28rpx;                      /* ≈14px，读起来舒适的大小 */
+  color: var(--text-primary);
+  box-sizing: border-box;                /* 怪异盒模型：padding/border 算在宽高内 */
+  -webkit-font-smoothing: antialiased;   /* 字体抗锯齿（WebKit 特有属性） */
+  overflow: hidden;                      /* 防止页面整体滚动（内容区单独滚） */
+}
+
+/* ===== 页容器基础（所有页面继承此布局模式） ===== */
+.page {
+  height: 100vh;                         /* flex: 1 会让子元素撑满剩余空间 */
+  display: flex;                         /* flex 布局：flex-direction: column → 垂直排列 */
+  flex-direction: column;
+  background: var(--bg-page);
+  overflow: hidden;                      /* 防止页面整体滚动 */
+}
+
+/* ===== 通用自定义导航栏 ===== */
+/* 用于 navigationStyle: custom 的页面（如首页） */
+.nav-bar {
+  display: flex;                         /* flex 横向布局 */
+  align-items: center;                   /* 垂直居中 */
+  justify-content: space-between;        /* 左右分布（返回按钮 - 标题 - 右侧按钮） */
+  padding: 0 32rpx;
+  background: var(--bg-card);
+  position: relative;
+  z-index: 100;                          /* 高 z-index 确保导航栏在最上层 */
+  flex-shrink: 0;                        /* flex 布局中不被压缩 */
+  box-sizing: border-box;
+}
+
+.nav-bar-back {
+  width: 80rpx;                          /* 固定宽度，方便点击 */
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+}
+
+.nav-bar-back-icon {
+  font-size: 40rpx;
+  color: var(--text-primary);
+}
+
+.nav-bar-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  position: absolute;                    /* 绝对定位 → 居中不占布局空间 */
+  left: 50%;
+  transform: translateX(-50%);           /* CSS 居中技巧：left:50% + translate */
+  white-space: nowrap;                   /* 不换行，防止标题太长换行 */
+}
+
+.nav-bar-right {
+  width: 80rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ===== 通用工具类（Utility Classes） ===== */
+/* Bootstrap 风格的原子类，快速构建布局 */
+
+/* flex 布局快捷类 */
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-start { display: flex; align-items: center; justify-content: flex-start; }
+.flex-1 { flex: 1; }                    /* 占满剩余空间 */
+
+/* 文字对齐 */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+
+/* 文字大小 */
+.text-sm { font-size: 24rpx; }          /* ≈12px */
+.text-md { font-size: 28rpx; }          /* ≈14px */
+.text-lg { font-size: 32rpx; }          /* ≈16px */
+.text-xl { font-size: 36rpx; }          /* ≈18px */
+
+/* 文字颜色 */
+.text-muted { color: var(--text-secondary); }
+.text-primary { color: var(--color-primary); }
+
+/* 文字粗细 */
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+
+/* ===== 通用卡片样式 ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== 通用按钮样式 ===== */
+/* 渐变色主按钮 — 用于主要操作（下一步、生成、保存） */
+.btn-gradient {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);    /* 青色→蓝色渐变 */
+  color: var(--text-white);
+  border-radius: var(--radius-md);
+  padding: 28rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+/* 边框次要按钮 — 用于次要操作（返回、取消） */
+.btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-default);
+  padding: 28rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+/* ===== remixicon 图标通用样式 ===== */
+/* 使用方法：<text class="ri-icon">Unicode图标码</text> */
+.ri-icon {
+  font-family: 'remixicon' !important;    /* important: 覆盖可能的字体继承 */
+  display: inline-block;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,32 @@
+.dest-card {
+  display: flex;
+  flex-direction: column;
+  width: 280rpx;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.dest-img {
+  width: 280rpx;
+  height: 200rpx;
+}
+
+.dest-info {
+  padding: 24rpx;
+}
+
+.dest-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.dest-tags {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}

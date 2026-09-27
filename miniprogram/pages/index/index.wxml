@@ -1,0 +1,126 @@
+<!--
+============================================================================
+pages/index/index.wxml — 首页模板
+============================================================================
+WXML 是微信小程序的模板语言，语法类似 HTML + Vue 指令
+特殊语法：
+  - {{变量}} : 数据绑定（双向绑定需用 model: 前缀）
+  - wx:if     : 条件渲染（不满足条件时 DOM 节点不存在）
+  - wx:for    : 列表渲染（类似 Vue 的 v-for）
+  - bindtap   : 事件绑定（类似 HTML 的 onclick）
+  - wx:key    : 列表渲染的性能优化 key（类似 React key）
+
+rpx 说明：
+  - 750rpx = 屏幕宽度（无论什么设备）
+  - 例如：iPhone 12 (390px宽) 上 375rpx = 195px
+  - 设计稿 750px 宽度直接 1:1 写 rpx 值
+============================================================================
+-->
+<view class="page-home">
+  <!-- ===== 自定义导航栏 ===== -->
+  <!-- style="padding-top: {{safeTop}}px": 向下偏移状态栏高度，防止内容被遮挡 -->
+  <view class="header" style="padding-top: {{safeTop}}px">
+    <view class="header-inner">
+      <text class="header-title">AI旅行规划</text>
+      <view class="header-right">
+        <text class="ri-icon header-icon"></text>   <!-- 搜索图标 -->
+        <text class="ri-icon header-icon"></text>  <!-- 用户图标 -->
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 主滚动区域 ===== -->
+  <!-- scroll-y: 允许纵向滚动 -->
+  <!-- enhanced: 启用增强特性（惯性滚动、边界回弹） -->
+  <!-- show-scrollbar: 是否显示滚动条 -->
+  <scroll-view class="main-scroll" scroll-y enhanced show-scrollbar="{{false}}" 
+    style="padding-bottom: calc(100rpx + {{safeBottom}}px + 32rpx)">
+    
+    <!-- === Banner 横幅 === -->
+    <!-- 渐变背景 + 五角星装饰 + 白色按钮 -->
+    <view class="banner">
+      <!-- SVG 装饰：右上角半透明五角星（纯视觉效果） -->
+      <view class="banner-decor">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <polygon points="60,10 80,45 120,50 85,80 95,120 60,100 25,120 35,80 0,50 40,45" 
+            fill="rgba(255,255,255,0.15)" stroke="none" />
+        </svg>
+      </view>
+      <!-- Banner 文字内容 -->
+      <view class="banner-content">
+        <text class="banner-title">智能规划你的完美旅程</text>
+        <text class="banner-desc">输入你的需求，AI为你定制专属行程</text>
+        <!-- 白色胶囊按钮 -->
+        <view class="banner-btn" bindtap="onStartPlan">
+          <text class="banner-btn-text">开始规划</text>
+          <text class="ri-icon banner-btn-icon"></text>  <!-- 箭头图标 -->
+        </view>
+      </view>
+    </view>
+
+    <!-- === 最近规划 === -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">最近规划</text>
+        <!-- 只有有数据时才显示"查看全部" -->
+        <text class="section-more" bindtap="onViewAll" wx:if="{{recentTrips.length > 0}}">查看全部</text>
+      </view>
+
+      <!-- 行程卡片列表 -->
+      <view class="recent-list" wx:if="{{recentTrips.length > 0}}">
+        <!-- wx:for 遍历 recentTrips 数组 -->
+        <view class="recent-card" 
+          wx:for="{{recentTrips}}" 
+          wx:key="id"                          
+          bindtap="onTapTrip"                 
+          data-trip="{{item}}"                
+        >
+          <view class="recent-card-top">
+            <view class="recent-info">
+              <text class="recent-title">{{item.title}}</text>
+              <text class="recent-date">{{item.startDate}} - {{item.endDate}} | {{item.days}}天{{item.people}}人</text>
+            </view>
+            <view class="recent-tag tag-completed">已完成</view>
+          </view>
+          <view class="recent-card-bottom">
+            <view class="recent-budget">
+              <text class="ri-icon budget-icon"></text>     <!-- 钱袋图标 -->
+              <text class="budget-text">¥{{item.budget}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态：首次使用或无数据时展示 -->
+      <view class="empty-recent" wx:if="{{!loading && recentTrips.length === 0}}">
+        <text class="ri-icon empty-icon"></text>            <!-- 空文件夹图标 -->
+        <text class="empty-text">还没有行程记录</text>
+        <text class="empty-hint">点击上方开始规划你的第一次旅行</text>
+      </view>
+    </view>
+
+    <!-- === 热门目的地 === -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">热门目的地</text>
+        <text class="section-more">换一批</text>
+      </view>
+      <!-- 横向滚动 -->
+      <scroll-view class="dest-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="dest-card" 
+          wx:for="{{hotDests}}" 
+          wx:key="id"
+          bindtap="onTapDest"
+          data-dest="{{item}}"
+        >
+          <!-- mode="aspectFill": 图片等比缩放填满容器，超出裁切 -->
+          <image class="dest-image" src="{{item.image}}" mode="aspectFill" />
+          <view class="dest-info">
+            <text class="dest-name">{{item.name}}</text>
+            <text class="dest-tags">{{item.tags}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </scroll-view>
+</view>

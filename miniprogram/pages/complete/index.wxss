@@ -1,0 +1,162 @@
+/**
+ * ============================================================================
+ * pages/complete/index.wxss — 行程生成完成页样式（163行）
+ * ============================================================================
+ * 布局：导航 → 滚动区（成功动画 → 摘要卡片 → 天概览 → 按钮区）
+ * ============================================================================
+ */
+
+/* ===== 页面容器 ===== */
+.page-complete {
+  height: 100vh;                                 /* 满屏 */
+  display: flex; flex-direction: column;
+  background: var(--bg-page); overflow: hidden;
+}
+
+/* ===== 导航栏 ===== */
+.nav-header { flex-shrink: 0; background: var(--bg-card); z-index: 100; }
+.nav-header-inner { display: flex; align-items: center; height: 88rpx; padding: 0 32rpx; }
+.nav-back { width: 80rpx; height: 88rpx; display: flex; align-items: center; }
+.nav-back-icon { font-size: 40rpx; color: var(--text-primary); }
+.nav-title { flex: 1; font-size: 34rpx; font-weight: 600; color: var(--text-primary); text-align: center; }
+.nav-right { width: 80rpx; }
+
+/* ===== 滚动区（内容居中） ===== */
+.main-scroll {
+  flex: 1; padding: 32rpx;
+  display: flex; flex-direction: column;
+  align-items: center;                           /* 内容水平居中 */
+  box-sizing: border-box;
+}
+
+/* ===== 成功动画区 ===== */
+.success-section {
+  display: flex; flex-direction: column;
+  align-items: center;                           /* 图标+文字 垂直居中 */
+  margin-top: 40rpx;                             /* 顶部留白（视觉呼吸感） */
+  margin-bottom: 40rpx;
+}
+
+/* 成功对勾图标：绿色渐变圆形 */
+.success-icon {
+  width: 192rpx; height: 192rpx;                 /* 96px 大圆形 */
+  border-radius: var(--radius-full);              /* 正圆 */
+  background: var(--gradient-success);            /* 绿色渐变 */
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 40rpx;
+  box-shadow: 0 16rpx 48rpx rgba(34,197,94,0.3); /* 绿色发光阴影 */
+}
+
+.success-icon-text { font-size: 88rpx; color: var(--text-white); }
+/* 白色大对勾 ✓ */
+
+.success-title { font-size: 40rpx; font-weight: 700; color: var(--text-primary); margin-bottom: 8rpx; }
+/* "行程已生成！" */
+.success-subtitle { font-size: 28rpx; color: var(--text-secondary); }
+/* "AI 已为你定制好专属旅行方案" */
+
+/* ===== 行程摘要预览卡片 ===== */
+.preview-card {
+  width: 100%;                                   /* 全宽 */
+  background: var(--bg-card); border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light); box-shadow: var(--shadow-md);
+  padding: 40rpx; margin-bottom: 48rpx; box-sizing: border-box;
+}
+
+/* 卡片头部：标题 + AI标签 */
+.preview-header {
+  display: flex; align-items: center;
+  justify-content: space-between;                /* 标题在左，标签在右 */
+  margin-bottom: 24rpx;
+}
+
+.preview-title { font-size: 36rpx; font-weight: 700; color: var(--text-primary); }
+/* 如 "西安3日深度打卡" */
+
+.preview-tag {
+  background: var(--color-blue-light);           /* 浅蓝色 */
+  color: var(--color-blue);
+  font-size: 22rpx; font-weight: 500;
+  padding: 8rpx 20rpx; border-radius: var(--radius-full);
+  flex-shrink: 0;                                /* 固定宽度 */
+}
+
+/* 信息行：日期 | 天数 | 预算（用竖线分隔） */
+.preview-info-row {
+  display: flex; align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.preview-info { display: flex; align-items: center; }
+.info-icon { font-size: 28rpx; color: var(--text-muted); margin-right: 8rpx; }
+.info-text { font-size: 26rpx; color: var(--text-secondary); }
+/* 如 "2025.06.01-2025.06.03" */
+
+/* 信息行之间的竖线分隔符 */
+.info-divider {
+  width: 4rpx;                                   /* 2px宽的细线 */
+  height: 28rpx;                                 /* 14px高度 */
+  background: var(--border-default);
+  margin: 0 24rpx;                               /* 左右间距 */
+}
+
+/* ===== 每日概览（最大显示前3天） ===== */
+.day-overview { margin-bottom: 16rpx; }
+
+.day-box {
+  display: flex; align-items: center;
+  background: var(--bg-input);                   /* 浅灰背景 */
+  border-radius: var(--radius-sm);
+  padding: 20rpx 24rpx; margin-bottom: 16rpx;
+}
+
+/* 彩色天数圆角标签 */
+.day-tag {
+  width: 80rpx; height: 80rpx;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 24rpx; flex-shrink: 0;
+  /* 背景色由 dayColors 数组动态设置（JS中：style="background:{{dayColors[index]}}"） */
+}
+
+.day-tag-text { font-size: 26rpx; font-weight: 700; color: var(--text-white); }
+/* 白色 "D1" "D2" "D3" */
+
+.day-info { flex: 1; }
+/* 摘要文字区域 */
+
+.day-route {
+  font-size: 26rpx; font-weight: 500;
+  color: var(--text-primary); display: block;
+}
+/* 如 "红色记忆·盛唐之夜" */
+
+/* ===== 操作按钮 ===== */
+.action-btns {
+  box-sizing: border-box;
+  padding: 16rpx 0 48rpx;                       /* 上16 + 底部留白48 */
+}
+
+/* 查看完整行程（渐变主按钮） */
+.view-detail-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #06B6D4, #3B82F6); /* 青蓝渐变 */
+  border-radius: 12rpx; padding: 28rpx; margin-bottom: 24rpx;
+}
+
+/* 重新生成（灰色次要按钮） */
+.regen-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: #F8FAFC;                           /* 浅灰背景 */
+  border-radius: 12rpx; border: 1rpx solid #E2E8F0;
+  padding: 28rpx;
+}
+
+.btn-icon { font-size: 36rpx; color: #fff; margin-right: 16rpx; }
+/* 渐变按钮上的白色图标 */
+.btn-icon-muted { font-size: 36rpx; color: #64748B; margin-right: 16rpx; }
+/* 灰色按钮上的灰色图标 */
+.btn-text { font-size: 32rpx; font-weight: 600; color: #fff; }
+/* 白色加粗文字（渐变按钮上） */
+.btn-text-muted { font-size: 30rpx; font-weight: 500; color: #64748B; }
+/* 灰色文字（次要按钮上） */

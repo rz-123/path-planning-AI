@@ -1,0 +1,91 @@
+<!--
+============================================================================
+pages/complete/index.wxml — 行程生成完成页模板
+============================================================================
+功能：
+  1. 成功动画 + 提示文案
+  2. 行程摘要卡片（标题/日期/天数/预算）
+  3. 前3天的每日概览
+  4. "查看完整行程" + "重新生成" 按钮
+============================================================================
+-->
+<view class="page-complete">
+  <!-- 导航栏 -->
+  <view class="nav-header" style="padding-top: {{safeTop}}px">
+    <view class="nav-header-inner">
+      <view class="nav-back" bindtap="onBack">
+        <text class="ri-icon nav-back-icon"></text>
+      </view>
+      <text class="nav-title">创建我的行程</text>
+      <view class="nav-right"></view>
+    </view>
+  </view>
+
+  <scroll-view class="main-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <!-- === 成功动画 === -->
+    <!-- 对勾图标 + 庆祝文案 -->
+    <view class="success-section">
+      <view class="success-icon">
+        <text class="ri-icon success-icon-text"></text>       <!-- 对勾图标 -->
+      </view>
+      <text class="success-title">行程已生成！</text>
+      <text class="success-subtitle">AI 已为你定制好专属旅行方案</text>
+    </view>
+
+    <!-- === 行程摘要卡片 === -->
+    <view class="preview-card" wx:if="{{tripResult}}">
+      <view class="preview-header">
+        <text class="preview-title">{{tripResult.title}}</text>    <!-- 如 "西安3日深度打卡" -->
+        <view class="preview-tag">AI生成</view>
+      </view>
+      <!-- 信息行：日期 | 天数 | 预算 -->
+      <view class="preview-info-row">
+        <view class="preview-info">
+          <text class="ri-icon info-icon"></text>
+          <text class="info-text">{{tripResult.startDate}}-{{tripResult.endDate}}</text>
+        </view>
+        <view class="info-divider"></view>
+        <view class="preview-info">
+          <text class="ri-icon info-icon"></text>
+          <text class="info-text">{{tripResult.days}}天{{tripResult.nights}}晚</text>
+        </view>
+        <view class="info-divider"></view>
+        <view class="preview-info">
+          <text class="ri-icon info-icon" style="color:#22C55E"></text>
+          <text class="info-text" style="color:#10B981">¥{{tripResult.totalBudget}}</text>
+        </view>
+      </view>
+      <!-- 每日概览（只显示前3天，wx:if="{{index < 3}}"） -->
+      <view class="day-overview" wx:for="{{tripResult.dailyPlan}}" wx:key="day" wx:if="{{index < 3}}">
+        <view class="day-box">
+          <!-- 圆形天数标签，颜色轮换 dayColors[index % 10] -->
+          <view class="day-tag" style="background:{{dayColors[index % 10]}}">
+            <text class="day-tag-text">D{{item.day}}</text>
+          </view>
+          <view class="day-info">
+            <text class="day-summary">{{item.summary || ''}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 天数过多提示 -->
+    <view wx:if="{{tripResult.days > 3}}" style="text-align:center;padding:20rpx 0 8rpx;">
+      <text style="font-size:24rpx;color:#94A3B8;">行程共{{tripResult.days}}天，点击下方查看完整安排</text>
+    </view>
+
+    <!-- === 按钮区 === -->
+    <view style="padding:24rpx 0 60rpx;">
+      <!-- 查看完整行程（渐变主按钮） -->
+      <view style="background:linear-gradient(135deg,#06B6D4,#3B82F6);border-radius:12rpx;padding:28rpx;text-align:center;margin-bottom:24rpx;" bindtap="onViewDetail">
+        <text class="ri-icon" style="font-size:36rpx;color:#fff;margin-right:16rpx;"></text>
+        <text style="font-size:32rpx;font-weight:600;color:#fff;">查看完整行程</text>
+      </view>
+      <!-- 重新生成（灰色次要按钮） -->
+      <view style="background:#F8FAFC;border-radius:12rpx;border:1rpx solid #E2E8F0;padding:28rpx;text-align:center;" bindtap="onRegenerate">
+        <text class="ri-icon" style="font-size:36rpx;color:#64748B;margin-right:16rpx;"></text>
+        <text style="font-size:30rpx;font-weight:500;color:#64748B;">不满意，重新生成</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,21 @@
+<view class="step-indicator">
+  <view class="step-bar">
+    <view class="step-node {{steps[0].status}}">
+      <text wx:if="{{steps[0].status === 'completed'}}" class="ri-icon step-check"></text>
+      <text wx:else class="step-num">{{steps[0].num}}</text>
+    </view>
+    <view class="step-line {{steps[0].status === 'completed' ? 'done' : ''}}"></view>
+    <view class="step-node {{steps[1].status}}">
+      <text wx:if="{{steps[1].status === 'completed'}}" class="ri-icon step-check"></text>
+      <text wx:else class="step-num">{{steps[1].num}}</text>
+    </view>
+    <view class="step-line {{steps[1].status === 'completed' ? 'done' : ''}}"></view>
+    <view class="step-node {{steps[2].status}}">
+      <text wx:if="{{steps[2].status === 'completed'}}" class="ri-icon step-check"></text>
+      <text wx:else class="step-num">{{steps[2].num}}</text>
+    </view>
+  </view>
+  <view class="step-labels">
+    <text class="step-label" wx:for="{{steps}}" wx:key="num" style="color: {{item.labelColor}}">{{item.label}}</text>
+  </view>
+</view>

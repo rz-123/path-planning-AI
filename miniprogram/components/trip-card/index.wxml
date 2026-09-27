@@ -1,0 +1,25 @@
+<view class="trip-card">
+  <view class="card-header">
+    <view class="card-title-area">
+      <text class="card-title">{{trip.title}}</text>
+      <text class="card-date">{{trip.startDate}} - {{trip.endDate}} | {{trip.tags}}</text>
+    </view>
+    <view class="card-status" wx:if="{{showStatus}}">
+      <text class="status-text">{{trip.statusText}}</text>
+    </view>
+  </view>
+  <view class="card-footer">
+    <view class="budget-row">
+      <text class="ri-icon budget-icon"></text>
+      <text class="budget-amount">总预算: ¥{{trip.budget}}</text>
+    </view>
+    <view class="card-actions">
+      <view class="action-item">
+        <text class="ri-icon action-icon"></text>
+      </view>
+      <view class="action-item">
+        <text class="ri-icon action-icon"></text>
+      </view>
+    </view>
+  </view>
+</view>

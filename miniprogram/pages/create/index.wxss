@@ -1,0 +1,367 @@
+/**
+ * ============================================================================
+ * pages/create/index.wxss — 创建行程页面样式
+ * ============================================================================
+ * 本文件只对 pages/create/index 页面生效（WXSS 的作用域规则）
+ * 全局样式在 app.wxss 中定义，页面样式只影响当前页面
+ * 
+ * 布局结构：
+ *   顶部导航 → 步骤指示器 → Swiper(基本信息+偏好设置) → 底部按钮
+ *   + 城市选择器弹窗（固定定位浮层）
+ * 
+ * rpx 单位: 750rpx = 屏幕宽度，自动适配所有设备
+ * var(--xxx): CSS 变量，从 app.wxss 的 page 选择器继承
+ * ============================================================================
+ */
+
+/* ===== 页面容器：满屏、flex纵向、不滚动 ===== */
+.page-create {                                   /* 页面根容器 */
+  height: 100vh;                                 /* 100vh = 占满视口高度（防止底部露出） */
+  display: flex;                                 /* flex 布局模式 */
+  flex-direction: column;                        /* 主轴方向=垂直（从上到下） */
+  background: var(--bg-page);                    /* 使用全局CSS变量的页面底色 */
+  overflow: hidden;                              /* 禁止页面级滚动（由子元素接管滚动） */
+}
+
+/* ===== 导航栏 ===== */
+.nav-header { flex-shrink: 0; background: var(--bg-card); z-index: 100; }
+/* flex-shrink: 0 → flex布局中不会被压缩（保持导航栏高度不变） */
+/* z-index: 100 → 确保导航栏在最上层（不被内容遮挡） */
+.nav-header-inner { display: flex; align-items: center; height: 88rpx; padding: 0 32rpx; }
+/* height: 88rpx ≈ 44px，微信标准导航栏高度 */
+.nav-back { width: 80rpx; height: 88rpx; display: flex; align-items: center; }
+/* width: 80rpx → 返回按钮的可点击区域宽度 */
+.nav-back-icon { font-size: 40rpx; color: var(--text-primary); }
+.nav-title { flex: 1; font-size: 34rpx; font-weight: 600; color: var(--text-primary); text-align: center; }
+/* flex: 1 → 标题占满返回按钮和右侧按钮之间的空间 */
+.nav-right { width: 80rpx; display: flex; align-items: center; justify-content: flex-end; }
+.nav-right-icon { font-size: 40rpx; color: var(--text-primary); }
+
+/* ===== 步骤指示器容器 ===== */
+.step-wrap {
+  flex-shrink: 0;                                /* 导航栏不会被压缩 */
+  padding: 32rpx 32rpx 0;                        /* 上32 左右32 下0 */
+}
+
+/* ===== Swiper 步骤滑动容器 ===== */
+.step-swiper {
+  flex: 1;                                       /* 占满导航栏+指示器下方所有空间 */
+  overflow: hidden;                              /* 隐藏swiper外的溢出内容 */
+}
+
+.swiper-scroll {
+  height: 100%;                                  /* 占满swiper-item的高度 */
+  padding: 24rpx 32rpx;                          /* 表单内容的内边距 */
+  box-sizing: border-box;                        /* padding算在总高度内 */
+}
+
+/* ===== 表单通用卡片 ===== */
+.form-section { display: flex; flex-direction: column; gap: 32rpx; }
+/* gap: 32rpx → 卡片之间的间距（CSS Grid/Flexbox 原生间距属性） */
+.form-card { background: var(--bg-card); border-radius: var(--radius-md); border: 1rpx solid var(--border-light); box-shadow: var(--shadow-sm); padding: 32rpx; }
+/* box-shadow → 卡片轻微浮起效果 */
+.form-card-header { display: flex; align-items: center; margin-bottom: 32rpx; }
+/* 卡片标题行：图标+标题文字 水平排列 */
+.card-icon { font-size: 36rpx; margin-right: 16rpx; }
+/* 每个卡片头部的颜色图标（起始地=蓝色,目的地=红色等） */
+.card-title { font-size: 32rpx; font-weight: 600; color: var(--text-primary); }
+.card-subtitle { font-size: 24rpx; color: var(--text-muted); margin-left: 8rpx; }
+/* 标题后的附加说明（如"多选""选填"） */
+
+/* ===== 目的地输入区 ===== */
+.dest-input-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 24rpx; }
+/* 输入框+选择按钮 横向排列 */
+.dest-text-input { flex: 1; height: 88rpx; background: var(--bg-input); border: 1rpx solid var(--border-default); border-radius: var(--radius-sm); padding: 0 24rpx; font-size: 30rpx; color: var(--text-primary); box-sizing: border-box; }
+/* flex: 1 → 输入框占满选择按钮外的空间 */
+/* box-sizing: border-box → border和padding计入总宽度 */
+.dest-placeholder { color: var(--text-muted); }
+/* placeholder-class → 微信小程序的占位符样式（不是标准CSS ::placeholder） */
+.dest-pick-btn { width: 88rpx; height: 88rpx; border-radius: var(--radius-sm); background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* 渐变蓝色方形按钮，点击弹出城市选择器 */
+/* flex-shrink: 0 → 不会被输入框挤窄 */
+.dest-pick-icon { font-size: 36rpx; color: var(--text-white); }
+
+/* 随机推荐行 */
+.random-row { display: flex; align-items: center; justify-content: space-between; }
+/* space-between → 文字在左，按钮在右 */
+.random-row.right { justify-content: flex-end; }
+/* 变体：内容靠右（用于没有提示文字时） */
+.random-tip { font-size: 26rpx; color: var(--text-secondary); }
+.random-btn { display: flex; align-items: center; background: var(--color-primary-light); border-radius: var(--radius-full); padding: 12rpx 24rpx; }
+/* border-radius: 9999rpx → 胶囊形按钮 */
+.random-icon { font-size: 28rpx; color: var(--color-primary); margin-right: 8rpx; }
+.random-text { font-size: 26rpx; color: var(--color-primary-dark); font-weight: 500; }
+
+/* ===== 日期选择区 ===== */
+.date-row { display: flex; align-items: center; gap: 24rpx; margin-bottom: 24rpx; }
+/* 两个日期选择器 + 箭头图标，横向排列 */
+.date-row picker { flex: 1; }
+/* picker 是微信原生组件，flex:1 让两个picker等分宽度 */
+.date-input { background: var(--bg-input); border: 1rpx solid var(--border-default); border-radius: var(--radius-sm); padding: 24rpx; }
+/* 日期picker的可见区域样式 */
+.date-label { font-size: 26rpx; color: var(--text-secondary); display: block; margin-bottom: 4rpx; }
+/* 小号灰色提示文字 "开始日期""结束日期" */
+.date-value { font-size: 30rpx; color: var(--text-primary); font-weight: 500; }
+/* 选中的日期显示 */
+.date-value.placeholder { color: var(--text-muted); font-weight: 400; }
+/* 未选择时显示 "请选择" 的灰色样式 */
+.date-arrow { font-size: 32rpx; color: var(--text-muted); flex-shrink: 0; }
+/* 两个日期选择器之间的箭头 → */
+.days-info { padding: 24rpx 0 0 0; border-top: 1rpx solid var(--border-light); }
+/* 选择日期后显示 "共X天X晚"，有上分割线 */
+.days-text { font-size: 26rpx; color: var(--text-secondary); }
+.days-num { color: var(--color-primary-dark); font-weight: 500; }
+/* 天数数字用深青色加粗突出 */
+
+/* ===== 人数选择区 ===== */
+.people-row { display: flex; align-items: center; background: var(--bg-input); border: 1rpx solid var(--border-default); border-radius: var(--radius-sm); padding: 20rpx 24rpx; }
+/* 标签(成人/小孩) + 提示 + 计数器 横向排列 */
+.people-row.child-row { margin-top: 20rpx; }
+/* 小孩行与成人行之间的间距 */
+.people-label { font-size: 28rpx; font-weight: 500; color: var(--text-primary); margin-right: 12rpx; width: 80rpx; }
+/* width: 80rpx → 固定标签宽度，保证对齐 */
+.people-hint { font-size: 24rpx; color: var(--text-muted); flex: 1; }
+/* flex: 1 → 提示文字占满剩余空间 */
+.people-counter { display: flex; align-items: center; gap: 24rpx; flex-shrink: 0; }
+/* [- 按钮] [数字] [+ 按钮] 横向排列 */
+.counter-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: var(--bg-card); border: 1rpx solid var(--border-default); border-radius: var(--radius-full); }
+/* 圆形加减按钮 */
+.counter-btn.disabled { opacity: 0.35; }
+/* 禁用状态：半透明（值为1时减号、值为10时加号） */
+.counter-btn.active { background: var(--color-primary); border-color: var(--color-primary); }
+/* 可用状态：蓝色实心（加号按钮始终active） */
+.counter-icon { font-size: 32rpx; color: var(--text-muted); }
+/* 减号/加号的 remixicon 图标 */
+.counter-icon.white { color: var(--text-white); }
+/* active 按钮的图标颜色 = 白色 */
+.counter-num { font-size: 32rpx; font-weight: 600; color: var(--text-primary); min-width: 60rpx; text-align: center; }
+/* 当前数值居中显示 */
+
+/* ===== 出行方式（当前已废弃隐藏，保留以备后用） ===== */
+.transport-grid { display: flex; gap: 24rpx; }
+.transport-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 140rpx; border: 1rpx solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-card); }
+/* 图标在上+文字在下 */
+.transport-item.active { background: var(--color-primary-light); border-color: var(--color-primary-border); }
+.transport-icon { font-size: 36rpx; color: var(--text-secondary); margin-bottom: 8rpx; }
+.transport-icon.active { color: var(--color-primary-dark); }
+.transport-label { font-size: 26rpx; color: var(--text-secondary); font-weight: 500; }
+.transport-label.active { color: var(--color-primary-dark); }
+
+/* ===== 旅行风格（4个胶囊按钮，2行x2列） ===== */
+.style-grid {
+  display: flex;                                 /* flex 横向排列 */
+  flex-wrap: wrap;                               /* 允许换行 */
+  justify-content: space-between;                /* 两端对齐（左1+右1，左2+右2） */
+}
+.style-item {
+  width: 48%;                                    /* 约一半宽（留2%间距） */
+  height: 80rpx;                                 /* 固定高度 */
+  margin-bottom: 16rpx;                          /* 行间距 */
+  display: flex;
+  flex-direction: row;                           /* 图标和文字横向排列 */
+  align-items: center;                           /* 垂直居中 */
+  justify-content: center;                       /* 水平居中 */
+  border: 1rpx solid var(--border-default);
+  border-radius: var(--radius-full);              /* 胶囊形（大圆角） */
+  background: var(--bg-card);
+  overflow: hidden;                              /* 裁切溢出圆角的背景 */
+}
+.style-item:nth-child(3), .style-item:nth-child(4) { margin-bottom: 0; }
+/* CSS nth-child: 第3、第4个元素去掉底部间距（最后一行） */
+.style-item.active { background: var(--color-primary-light); border-color: var(--color-primary); }
+/* 选中的风格卡片：浅蓝色背景 + 蓝色边框 */
+.style-icon { font-size: 28rpx; color: var(--text-muted); margin-right: 10rpx; flex-shrink: 0; }
+.style-icon.active { color: var(--color-primary-dark); }
+.style-label { font-size: 24rpx; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+/* white-space: nowrap → 文字不换行（如"特种兵式"不会被截断） */
+.style-label.active { color: var(--color-primary-dark); }
+
+/* ===== 兴趣标签（8个方块按钮，2行x4列） ===== */
+.tag-grid {
+  display: flex;                                 /* flex 横向排列 */
+  flex-wrap: wrap;                               /* 允许换行 */
+  justify-content: space-between;               /* 两端对齐 */
+}
+.interest-tag {
+  width: 23%;                                    /* 约1/4宽（4个一行） */
+  height: 100rpx;                                /* 略高于风格按钮 */
+  margin-bottom: 16rpx;
+  display: flex;
+  flex-direction: column;                        /* 图标在上 + 文字在下 */
+  align-items: center;                           /* 水平居中 */
+  justify-content: center;                       /* 垂直居中 */
+  border: 1rpx solid var(--border-default);
+  border-radius: var(--radius-md);               /* 圆角矩形 */
+  background: var(--bg-card);
+  overflow: hidden;
+}
+.interest-tag:nth-child(5), .interest-tag:nth-child(6),
+.interest-tag:nth-child(7), .interest-tag:nth-child(8) { margin-bottom: 0; }
+/* 第5-8个（最后一行）去掉底部间距 */
+.tag-icon { font-size: 28rpx; margin-bottom: 4rpx; flex-shrink: 0; }
+/* 每个兴趣的 emoji/unicode 图标 */
+.tag-label { font-size: 22rpx; font-weight: 500; white-space: nowrap; }
+/* 图标下方的文字（如"美食探索""博物馆"） */
+
+/* ===== 预算（3个选项，水平等分） ===== */
+.budget-grid { display: flex; gap: 16rpx; }
+/* gap: flex元素之间的间距 */
+.budget-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1rpx solid var(--border-default); border-radius: var(--radius-md); padding: 24rpx 0; background: var(--bg-card); }
+/* flex: 1 → 3个选项等分宽度 */
+.budget-item.active { background: var(--color-success-bg); border-color: var(--color-success); }
+/* 选中态：绿色系 */
+.budget-label { font-size: 28rpx; font-weight: 600; color: var(--text-secondary); margin-bottom: 4rpx; }
+.budget-label.active { color: var(--color-success); }
+.budget-range { font-size: 24rpx; color: var(--text-muted); }
+/* 档位下面的价格区间如 "¥1k-1.5k" */
+.budget-range.active { color: var(--color-success); }
+
+.budget-hint {
+  display: block;                                /* block → 独占一行 */
+  text-align: center;                            /* 居中 */
+  font-size: 24rpx;
+  color: var(--text-muted);                     /* 最弱的灰色 */
+  margin-top: 20rpx;
+}
+
+/* ===== 住宿偏好（3个胶囊按钮，水平等分） ===== */
+.accommodation-row { display: flex; gap: 16rpx; }
+.accommodation-item { flex: 1; display: flex; align-items: center; justify-content: center; border: 1rpx solid var(--border-default); border-radius: var(--radius-full); padding: 20rpx 0; background: var(--bg-card); }
+/* border-radius: 9999rpx → 胶囊形状 */
+.accommodation-item.active { background: var(--color-warning-bg); border-color: var(--color-warning); }
+/* 选中态：黄色系 */
+.acc-label { font-size: 26rpx; color: var(--text-secondary); font-weight: 500; }
+.acc-label.active { color: #D97706; }
+/* 选中文字色：深琥珀色 */
+
+/* ===== 特殊需求输入框 ===== */
+.needs-input { background: var(--bg-input); border: 1rpx solid var(--border-default); border-radius: var(--radius-sm); padding: 24rpx; }
+.needs-input textarea { width: 100%; min-height: 160rpx; font-size: 28rpx; color: var(--text-primary); }
+/* textarea 多行输入框，min-height 保证至少5行高 */
+.needs-placeholder { color: var(--text-muted); }
+
+/* ===== 底部按钮栏（固定区域，不随Swiper滚动） ===== */
+.bottom-bar {
+  flex-shrink: 0;                                /* 固定高度，不被压缩 */
+  padding: 24rpx 32rpx;
+  background: var(--bg-card);                    /* 白色背景 */
+  border-top: 1rpx solid var(--border-light);    /* 顶部分割线 */
+}
+
+.bottom-btns { display: flex; gap: 24rpx; }
+/* Step2 的两个按钮："上一步" + "生成行程" */
+
+/* 渐变色主按钮（下一步 / 生成行程） */
+.btn-gradient {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gradient-primary);            /* 青→蓝渐变 */
+  border-radius: var(--radius-md);
+  padding: 28rpx;
+}
+
+/* 灰色次要按钮（上一步） */
+.btn-outline {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-input);
+  border: 1rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 28rpx 48rpx;
+}
+
+.btn-text { font-size: 32rpx; font-weight: 600; color: var(--text-white); }
+/* 白色文字（用于渐变按钮上） */
+.btn-text-muted { font-size: 30rpx; font-weight: 500; color: var(--text-secondary); }
+/* 灰色文字（用于次要按钮） */
+.btn-icon { font-size: 32rpx; color: var(--text-white); margin-right: 16rpx; }
+/* 按钮中的图标（如生成按钮前的星号图标） */
+
+.flex-1 { flex: 1; }
+/* 工具类：占满剩余空间 */
+
+.bottom-space { height: 48rpx; }
+/* swiper-item 底部留白 */
+
+/* ======================================== */
+/*  城市选择器弹窗                          */
+/* ======================================== */
+
+/* 半透明遮罩层 */
+.city-picker-mask {
+  position: fixed;                               /* 固定定位：相对于视口 */
+  top: 0; left: 0; right: 0; bottom: 0;          /* 铺满全屏 */
+  background: rgba(0,0,0,0.4);                   /* 40%不透明度的黑色 */
+  z-index: 200;                                  /* 层级：在导航栏之上 */
+}
+
+/* 弹窗面板（从底部滑入） */
+.city-picker-panel {
+  position: fixed;                               /* 固定定位 */
+  left: 0; right: 0; bottom: 0;                  /* 贴底 */
+  height: 75vh;                                  /* 占屏幕高度的75% */
+  background: var(--bg-card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;  /* 只给顶部两个角圆角（底部贴边不需要） */
+  z-index: 201;                                  /* 在遮罩层之上 */
+  display: flex; flex-direction: column;         /* 垂直排列 header + body */
+  transform: translateY(100%);                    /* 默认隐藏在屏幕下方 */
+  transition: transform 0.3s ease;               /* 滑入/滑出动画 0.3秒 */
+}
+.city-picker-panel.active { transform: translateY(0); }
+/* .active 类时滑入可见区域 */
+
+/* 弹窗头部 */
+.cp-header {
+  display: flex; align-items: center; justify-content: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid var(--border-light); /* 底部分割线 */
+  position: relative;                            /* 为绝对定位的✕提供参考 */
+  flex-shrink: 0;                                /* 固定高度 */
+}
+.cp-title { font-size: 32rpx; font-weight: 600; color: var(--text-primary); }
+.cp-close { position: absolute; right: 32rpx; font-size: 40rpx; color: var(--text-muted); }
+/* ✕ 关闭按钮：绝对定位在右上角 */
+
+/* 搜索框 */
+.cp-search-box { display: flex; align-items: center; margin: 24rpx 32rpx; background: var(--bg-input); border-radius: var(--radius-full); padding: 16rpx 32rpx; flex-shrink: 0; }
+/* border-radius: 9999rpx → 搜索框胶囊形状 */
+.cp-search-icon { font-size: 32rpx; color: var(--text-muted); margin-right: 16rpx; }
+.cp-search-input { flex: 1; font-size: 28rpx; color: var(--text-primary); }
+/* flex:1 → 输入框占满图标外的空间 */
+.cp-search-placeholder { color: var(--text-muted); }
+
+/* 搜索结果区域 */
+.cp-search-result { flex: 1; overflow-y: auto; padding: 0 32rpx; }
+/* flex:1 → 占满弹窗面板的剩余空间 */
+.cp-city-item { padding: 28rpx 0; border-bottom: 1rpx solid var(--border-light); }
+/* 每个搜索结果项 + 底部分割线 */
+.cp-city-name { font-size: 30rpx; color: var(--text-primary); }
+.cp-no-result { text-align: center; padding: 80rpx 0; font-size: 26rpx; color: var(--text-muted); }
+/* "未找到匹配城市" 居中显示 */
+
+/* 城市列表面板（不搜索时显示） */
+.cp-body { flex: 1; overflow-y: auto; padding: 0 32rpx 32rpx; }
+/* 可滚动的城市列表区域 */
+.cp-section { margin-bottom: 24rpx; }
+.cp-section-title { font-size: 26rpx; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 20rpx; }
+
+/* 热门城市网格（3列） */
+.cp-hot-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.cp-hot-tag { width: calc(33.33% - 11rpx); height: 80rpx; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border-radius: var(--radius-sm); }
+/* calc(33.33% - 11rpx): 计算3列布局，减去gap */
+.cp-hot-tag.active { background: var(--color-primary-light); border: 1rpx solid var(--color-primary-border); }
+.cp-hot-text { font-size: 28rpx; color: var(--text-primary); }
+
+/* A-Z 字母索引导航（横向排列，可换行） */
+.cp-abc-index { display: flex; flex-wrap: wrap; gap: 8rpx; margin-bottom: 32rpx; }
+.cp-abc-letter { width: 52rpx; height: 52rpx; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--bg-input); font-size: 24rpx; font-weight: 600; color: var(--text-secondary); }
+/* 圆形字母按钮，点击滚动到对应字母的分组 */
+
+/* 按字母分组的城市列表 */
+.cp-group { margin-bottom: 28rpx; }
+.cp-group-title { font-size: 28rpx; font-weight: 700; color: var(--color-primary-dark); display: block; margin-bottom: 16rpx; }
+/* 字母分组标题，如 "A" "B" "C"，深青色大字 */
+.cp-city-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+/* 该字母下的城市 3列网格 */
+.cp-city-tag { width: calc(33.33% - 11rpx); height: 72rpx; display: flex; align-items: center; justify-content: center; background: var(--bg-input); border-radius: var(--radius-sm); }
+.cp-city-tag.active { background: var(--color-primary-light); border: 1rpx solid var(--color-primary-border); }
+/* 用户已选中的城市高亮 */
+.cp-city-text { font-size: 26rpx; color: var(--text-primary); }

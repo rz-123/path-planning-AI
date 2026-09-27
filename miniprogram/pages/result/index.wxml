@@ -1,0 +1,241 @@
+<view class="page-result">
+  <!-- 顶部导航栏 -->
+  <view class="r-header" style="padding-top: {{safeTop}}px">
+    <view class="r-header-inner">
+      <view class="r-header-back" bindtap="onBack">
+        <text class="ri-icon r-back-icon"></text>
+      </view>
+      <text class="r-header-title">我的行程</text>
+      <view class="r-header-right">
+        <text class="ri-icon r-h-icon"></text>
+        <text class="ri-icon r-h-icon"></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 行程头部信息 -->
+  <view class="trip-summary" wx:if="{{trip}}">
+    <text class="trip-title">{{trip.title}}</text>
+    <view class="trip-meta">
+      <view class="meta-item">
+        <text class="ri-icon meta-icon"></text>
+        <text class="meta-text">{{trip.startDate}} - {{trip.endDate}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="ri-icon meta-icon"></text>
+        <text class="meta-text">{{trip.people}}人出行</text>
+      </view>
+      <view class="meta-item">
+        <text class="ri-icon meta-icon" style="color: #22C55E"></text>
+        <text class="meta-text" style="color: #10B981">¥{{trip.totalBudget}}起</text>
+      </view>
+    </view>
+    <view class="trip-tags" wx:if="{{trip.interests}}">
+      <view class="tag-item" wx:for="{{trip.interests}}" wx:key="*this">
+        <text class="tag-text">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标签切换栏 -->
+  <view class="tab-switch">
+    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="onTabSwitch" data-tab="0">
+      <text class="tab-text {{currentTab === 0 ? 'active' : ''}}">行程安排</text>
+      <view class="tab-line" wx:if="{{currentTab === 0}}"></view>
+    </view>
+    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="onTabSwitch" data-tab="1">
+      <text class="tab-text {{currentTab === 1 ? 'active' : ''}}">预算明细</text>
+      <view class="tab-line" wx:if="{{currentTab === 1}}"></view>
+    </view>
+  </view>
+
+  <!-- Swiper 双视图 -->
+  <swiper class="main-swiper" current="{{currentTab}}" bindchange="onSwiperChange" duration="300">
+    <!-- 左视图：行程安排 -->
+    <swiper-item>
+      <scroll-view class="itinerary-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <!-- 日期选择器 + 天气 -->
+        <scroll-view class="date-selector" scroll-x enhanced show-scrollbar="{{false}}">
+          <view 
+            class="date-pill {{selectedDay === item.day ? 'active' : ''}}"
+            wx:for="{{trip.dailyPlan}}"
+            wx:key="day"
+            wx:for-index="idx"
+            bindtap="onSelectDay"
+            data-day="{{item.day}}"
+          >
+            <view class="date-pill-inner">
+              <text class="date-pill-date">Day{{item.day}}</text>
+              <text class="date-pill-day">{{item.date}}</text>
+            </view>
+            <view class="date-pill-weather" wx:if="{{dateWeather.length > 0}}">
+              <text class="weather-icon">{{dateWeather[idx].icon || '🌤️'}}</text>
+              <text class="weather-temp {{dateWeather[idx].isHistorical ? 'historical' : ''}}">{{dateWeather[idx].isHistorical ? (dateWeather[idx].nightTemp + '°~' + dateWeather[idx].dayTemp + '°') : (dateWeather[idx].temp || '')}}</text>
+            </view>
+          </view>
+        </scroll-view>
+
+        <!-- 当日景点路线地图（微信原生 map 组件，无需 SDK） -->
+        <view class="map-section">
+          <view class="map-header">
+            <view class="map-title-area">
+              <view class="map-icon-box"><text class="ri-icon map-icon"></text></view>
+              <text class="map-title">当日景点路线</text>
+            </view>
+            <text class="map-hint">{{mapMarkers.length}}个地点</text>
+          </view>
+          <map
+            class="route-map"
+            wx:if="{{mapMarkers.length > 0}}"
+            latitude="{{mapCenter.latitude}}"
+            longitude="{{mapCenter.longitude}}"
+            markers="{{mapMarkers}}"
+            polyline="{{mapPolylines}}"
+            scale="13"
+            show-location="{{true}}"
+            bindmarkertap="onMapMarkerTap"
+          ></map>
+          <view class="map-placeholder" wx:if="{{mapMarkers.length === 0}}">
+            <text class="ri-icon map-ph-icon"></text>
+            <text class="map-ph-text">暂无坐标数据</text>
+            <text class="map-ph-sub">生成行程时将自动获取真实GPS坐标</text>
+          </view>
+        </view>
+
+        <!-- 每日行程时间线 -->
+        <view class="timeline-section" wx:if="{{currentDayPlan && currentDayPlan.periods.length > 0}}">
+          <block wx:for="{{currentDayPlan.periods}}" wx:key="index">
+            <view class="timeslot-header">
+              <view class="timeslot-icon-box" style="background: {{item.bgColor}}">
+                <text class="ri-icon timeslot-icon" style="color: {{item.color}}">{{item.icon}}</text>
+              </view>
+              <text class="timeslot-title">{{item.timeSlot}}</text>
+            </view>
+            <view class="timeslot-spacer"></view>
+            <view class="timeline-wrap">
+              <view class="timeline-line"></view>
+              <block wx:for="{{item.items}}" wx:key="name" wx:for-item="tripItem">
+                <timeline-item item="{{tripItem}}" />
+              </block>
+            </view>
+          </block>
+        </view>
+
+        <!-- 推荐酒店 -->
+        <view class="hotel-card" wx:if="{{currentDayPlan && currentDayPlan.hotel}}">
+          <view class="hotel-header">
+            <view class="hotel-title-row">
+              <text class="ri-icon hotel-icon"></text>
+              <text class="hotel-title">推荐住宿</text>
+            </view>
+            <text class="hotel-price">¥{{currentDayPlan.hotel.pricePerNight}}/晚</text>
+          </view>
+          <view class="hotel-body">
+            <text class="hotel-name">{{currentDayPlan.hotel.name}}</text>
+            <text class="hotel-address">{{currentDayPlan.hotel.address}}</text>
+            <view class="hotel-tags">
+              <text class="hotel-tag">{{currentDayPlan.hotel.type || '舒适型'}}</text>
+              <text class="hotel-tag" wx:if="{{currentDayPlan.hotel.tips}}">{{currentDayPlan.hotel.tips}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="bottom-space"></view>
+      </scroll-view>
+    </swiper-item>
+
+    <!-- 右视图：预算明细 -->
+    <swiper-item>
+      <scroll-view class="budget-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <!-- 预算头部 -->
+        <view class="budget-header" wx:if="{{trip}}">
+          <text class="budget-label">{{trip.destination}}{{trip.days || 3}}日游总预算({{trip.people}}人)</text>
+          <text class="budget-total">¥{{trip.totalBudget}}</text>
+          <text class="budget-per-person">人均 ¥{{trip.budgetPerPerson}} | {{trip.budgetLevel === 'comfort' ? '舒适型' : '经济型'}}标准</text>
+        </view>
+
+        <!-- 预算构成 -->
+        <view class="budget-composition" wx:if="{{trip.budgetDetail}}">
+          <text class="comp-title">预算构成</text>
+          <view class="pie-legend-row">
+            <view class="pie-container">
+              <canvas canvas-id="budgetPie" class="pie-canvas" id="budgetPie"></canvas>
+              <text class="pie-center">总支出</text>
+            </view>
+            <view class="legend-list">
+              <view class="legend-item" wx:for="{{trip.budgetPieData}}" wx:key="name">
+                <view class="legend-dot" style="background: {{item.color}}"></view>
+                <text class="legend-name">{{item.name}}</text>
+                <text class="legend-amount">¥{{item.value}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="budget-note">
+            <text class="ri-icon note-icon"></text>
+            <text class="note-text">此预算为预估费用，实际花费可能因出行日期、预订方式、个人消费习惯等因素有所差异，仅供参考。</text>
+          </view>
+        </view>
+
+        <!-- 明细列表 -->
+        <text class="detail-title">明细列表</text>
+        <view class="detail-list">
+          <block wx:for="{{budgetCategories}}" wx:key="key">
+            <view class="detail-card">
+              <view class="detail-card-header">
+                <view class="detail-card-left">
+                  <text class="ri-icon dc-icon" style="color: {{item.color}}">{{item.icon}}</text>
+                  <text class="dc-title">{{item.title}}</text>
+                </view>
+                <text class="dc-total">¥{{item.total}}</text>
+              </view>
+              <view class="detail-items {{item.expanded ? '' : 'collapsed'}}">
+                <view class="detail-item" wx:for="{{item.items}}" wx:key="name" wx:for-item="dItem">
+                  <view class="di-info">
+                    <text class="di-name">{{dItem.name}}</text>
+                    <text class="di-desc">{{dItem.type}}</text>
+                  </view>
+                  <text class="di-amount">{{dItem.note || ('¥' + dItem.amount)}}</text>
+                </view>
+              </view>
+              <view class="detail-tips" wx:if="{{item.tips}}">
+                <text class="ri-icon dt-icon"></text>
+                <text class="dt-text">{{item.tips}}</text>
+              </view>
+              <view class="detail-card-toggle" bindtap="onToggleCategory" data-key="{{item.key}}">
+                <text class="toggle-text">{{item.expanded ? '收起' : '展开'}}明细</text>
+                <text class="ri-icon toggle-icon">{{item.expanded ? '' : ''}}</text>
+              </view>
+            </view>
+          </block>
+        </view>
+
+        <!-- 节省预算建议 -->
+        <view class="save-tips-card" wx:if="{{trip.saveTips}}">
+          <view class="save-header">
+            <text class="ri-icon save-icon"></text>
+            <text class="save-title">节省预算小贴士</text>
+          </view>
+          <view class="save-list">
+            <view class="save-item" wx:for="{{trip.saveTips}}" wx:key="*this">
+              <view class="save-num">{{index + 1}}</view>
+              <text class="save-text">{{item}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="bottom-space"></view>
+      </scroll-view>
+    </swiper-item>
+  </swiper>
+
+  <!-- 底部操作栏 -->
+  <view class="result-bottom-bar" style="padding-bottom: calc(32rpx + {{safeBottom}}px)">
+    <view class="bottom-regenerate" bindtap="onRegenerate">
+      <text class="ri-icon regen-icon"></text>
+      <text class="regen-text">重新生成</text>
+    </view>
+    <view class="bottom-save" bindtap="onSave">
+      <text class="ri-icon save-btn-icon"></text>
+      <text class="save-btn-text">保存行程</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,86 @@
+.trip-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1rpx solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  padding: 32rpx;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.card-title-area {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.card-date {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.card-status {
+  padding: 8rpx 16rpx;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue-light);
+}
+
+.status-text {
+  font-size: 24rpx;
+  color: var(--color-blue);
+  font-weight: 500;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.budget-row {
+  display: flex;
+  align-items: center;
+}
+
+.budget-icon {
+  font-size: 32rpx;
+  color: var(--color-success);
+  margin-right: 8rpx;
+}
+
+.budget-amount {
+  font-size: 26rpx;
+  color: #10B981;
+  font-weight: 500;
+}
+
+.card-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-item {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border-radius: var(--radius-full);
+}
+
+.action-icon {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
