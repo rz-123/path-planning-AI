@@ -195,7 +195,6 @@ uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 
 - [智能旅行助手开发计划](智能旅行助手开发计划.md) — 需求与 Agent 架构设计
 - [后端 API 规范](backend-api-spec.md) — 接口详细定义
-- [面试文档](backend/面试文档-AI旅行规划系统.md) — 架构设计与面试考点
 
 ---
 
