@@ -16,6 +16,8 @@
  *   - App 的 onLaunch 只执行一次，Page 的 onLoad 每次进入页面都执行
  * ============================================================================
  */
+var api = require('./utils/api');              // API 调用模块（云托管 + 401 自动重登）
+
 App({
   // ========================================================================
   // onLaunch: 应用启动生命周期（只执行一次）
@@ -86,12 +88,15 @@ App({
     var cachedToken = wx.getStorageSync('user_token');
     var cachedOpenid = wx.getStorageSync('user_openid');
     if (cachedToken && cachedOpenid) {
+      // 先填充缓存，让启动瞬间的请求不至于空 token
       that.globalData.token = cachedToken;
       that.globalData.openid = cachedOpenid;
       that.globalData.userId = wx.getStorageSync('user_id') || '';
-      console.log('[Login] 使用缓存 token');
-      return;                              // 有缓存直接返回
+      console.log('[Login] 已有缓存 token，仍继续刷新');
     }
+    // 注意：这里不能 return！
+    // JWT 有效期 7 天，缓存的 token 过期后若不重新 wx.login，所有请求都会 401。
+    // 每次启动都刷新一次，成本极低（一次 wx.login + 一次后端请求）。
 
     // Step 1: 调微信登录接口获取临时 code
     wx.login({
@@ -102,20 +107,13 @@ App({
         }
 
         // Step 2: 调后端 /api/v1/auth/login 用 code 换 openid
-        // callContainer: 微信云托管的内部调用 API，不经过公网
-        wx.cloud.callContainer({
-          config: { env: 'cloud1-d2gzje1i7ba287acb' },
-          path: '/api/v1/auth/login',
+        // api.request: 云托管内部调用，不经过公网（无需配置域名）
+        api.request('/api/v1/auth/login', {
           method: 'POST',
           data: { code: loginRes.code },
-          header: {
-            'X-WX-SERVICE': 'ai-travel-backend',     // 指定要调用的云托管服务
-            'content-type': 'application/json',
-          },
           timeout: 10000,
-          success: function (res) {
-              if (res.statusCode === 200 && res.data && res.data.token) {
-              var data = res.data;
+        }).then(function (data) {
+          if (data && data.token) {
               that.globalData.openid = data.openid;
               that.globalData.token = data.token;
               that.globalData.userId = data.user_id;
@@ -147,12 +145,12 @@ App({
                   });
                 }
               });
-            }
-          },
-          fail: function (err) {
-            console.warn('[Login] 登录失败，使用游客模式:', err.errMsg);
-            // 不阻塞应用：登录失败时后端 deps.py 会返回 "dev_user_001"
+          } else {
+            console.warn('[Login] 后端未返回 token:', JSON.stringify(data));
           }
+        }).catch(function (err) {
+          console.warn('[Login] 登录失败，使用游客模式:', JSON.stringify(err));
+          // 不阻塞应用：登录失败时后端 deps.py 会返回 "dev_user_001"
         });
       },
       fail: function (err) {

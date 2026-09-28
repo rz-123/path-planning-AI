@@ -38,9 +38,11 @@ pages/generate/index.wxml — AI生成中页面模板
       <text class="ai-title">AI 正在为你规划行程</text>
       <text class="ai-subtitle">
         这可能需要几秒钟... 
-        <!-- mode 变量表示当前模式：backend=真实AI生成，mock=模拟 -->
-        <text class="mode-tag {{mode}}">{{mode === 'backend' ? 'AI实时生成' : '模拟演示'}}</text>
+        <!-- mode 三态：backend=真实AI生成, connecting=请求中, failed=请求失败 -->
+        <text class="mode-tag {{mode}}">{{mode === 'backend' ? 'AI实时生成' : (mode === 'failed' ? '连接失败' : '连接中')}}</text>
       </text>
+      <!-- 失败时显示可复制的诊断信息（长按可复制） -->
+      <text wx:if="{{diagnosis}}" class="diagnosis" user-select>{{diagnosis}}</text>
     </view>
 
     <!-- === 5步进度列表 === -->

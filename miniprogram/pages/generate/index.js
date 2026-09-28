@@ -35,7 +35,9 @@ Page({
       { text: '优化行程，确保体验最佳', status: 'waiting' },
     ],
     currentTip: '',            // 当前轮播的旅行小贴士
-    mode: 'mock',              // 当前模式：backend=真实AI, mock=降级模拟
+    // 模式三态：connecting=请求已发出等待响应, backend=已拿到 tripId 真实生成, failed=请求失败
+    mode: 'connecting',
+    diagnosis: '',             // 失败时的诊断信息（页面可见，便于长按复制反馈）
     timer: null,               // setInterval 定时器 ID（页面离开时清除）
     safeTop: 0,
   },
@@ -115,19 +117,36 @@ Page({
     };
 
     console.log('[Generate] 提交后端:', payload.destination);
+    console.log('[Generate] 是否已登录:', api.hasToken(), '目的地:', payload.destination);
 
     api.generateTrip(payload).then(function(res) {
+      if (!res || !res.tripId) {
+        throw { code: -2, msg: '后端未返回 tripId: ' + JSON.stringify(res) };
+      }
       that._tripId = res.tripId;              // 保存 tripId（用于取消和轮询）
       that.setData({ mode: 'backend' });
       console.log('[Generate] 后端模式 tripId:', res.tripId);
       that._pollStatus(res.tripId);           // 开始轮询进度
     }).catch(function(err) {
       // API 调用失败 → 弹窗提示，不再静默降级
-      console.error('[Generate] 后端调用失败:', JSON.stringify(err));
+      console.error('[Generate] 后端调用失败:', 'code=' + err.code, 'via=' + err.via, JSON.stringify(err.msg));
+      // 把可复制的诊断信息直接显示在页面上（体验版无需开调试也能拿到）
+      that.setData({
+        mode: 'failed',
+        diagnosis: 'code=' + err.code + ' via=' + (err.via || '-') + ' msg=' + (typeof err.msg === 'string' ? err.msg : JSON.stringify(err.msg)),
+      });
       wx.hideLoading();
+
+      // 注意：err.msg 可能是对象（如 {detail:"登录已过期"}），必须先转字符串再截取，
+      // 否则 .substring 会抛 TypeError，导致弹窗不显示、页面卡死在生成页
+      var detail = typeof err.msg === 'string' ? err.msg : JSON.stringify(err.msg || err);
+      var content = err.code === 401
+        ? '登录已失效（401），自动重试仍失败。请删除小程序后重新进入'
+        : '后端服务暂时不可用（' + err.code + '）：' + detail.substring(0, 100);
+
       wx.showModal({
         title: '生成失败',
-        content: '后端服务暂时不可用：' + (err.msg || JSON.stringify(err)).substring(0, 100) + '\n\n请检查网络后重试',
+        content: content,
         showCancel: false,
         confirmText: '返回修改',
         success: function() { wx.navigateBack(); }

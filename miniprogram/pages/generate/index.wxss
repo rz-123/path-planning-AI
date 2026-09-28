@@ -87,10 +87,16 @@
 .ai-title { font-size: 36rpx; font-weight: 600; color: var(--text-primary); margin-bottom: 8rpx; }
 .ai-subtitle { font-size: 26rpx; color: var(--text-muted); }
 
-/* 模式标签：backend=绿色"AI实时生成", mock=黄色"模拟演示" */
+/* 模式标签：backend=绿色"AI实时生成", connecting=蓝色"连接中", failed=红色"连接失败" */
 .mode-tag { font-size: 22rpx; padding: 4rpx 12rpx; border-radius: 20rpx; margin-left: 10rpx; }
-.mode-tag.backend { background: #D1FAE5; color: #059669; }   /* 绿色系 */
-.mode-tag.mock { background: #FEF3C7; color: #D97706; }      /* 黄色系 */
+.mode-tag.backend { background: #D1FAE5; color: #059669; }    /* 绿色系 */
+.mode-tag.connecting { background: #DBEAFE; color: #2563EB; } /* 蓝色系 */
+.mode-tag.failed { background: #FEE2E2; color: #DC2626; }     /* 红色系 */
+.mode-tag.mock { background: #FEF3C7; color: #D97706; }       /* 兼容旧值 */
+
+/* 失败诊断信息：等宽小字，支持长按复制 */
+.diagnosis { display: block; margin-top: 12rpx; font-size: 20rpx; color: #DC2626;
+  background: #FEF2F2; padding: 8rpx 12rpx; border-radius: 8rpx; word-break: break-all; }
 
 /* ===== 进度步骤卡片 ===== */
 .progress-card {
