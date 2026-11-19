@@ -144,6 +144,10 @@ App({
                     data: { last_login: db.serverDate() }
                   });
                 }
+              }).catch(function (dbErr) {
+                // 为什么补 catch：count/add/update 任一失败（权限不足、网络异常）都别变成
+                // unhandled rejection，否则控制台看不到原因，用户记录缺失也无从排查
+                console.warn('[Login] users 集合读写失败（不影响登录）:', JSON.stringify(dbErr));
               });
           } else {
             console.warn('[Login] 后端未返回 token:', JSON.stringify(data));
@@ -169,24 +173,25 @@ App({
    */
   fetchMapKey() {
     var that = this;
-    // wx.request: 微信小程序的 HTTP 请求 API（类似浏览器的 fetch）
-    // 注意：需要在微信后台配置 request 合法域名
-    wx.request({
-      url: that.globalData.apiBaseUrl + '/api/v1/config/map-key',
-      method: 'GET',
-      timeout: 5000,                          // 5秒超时（启动时不宜等待太久）
-      success: function (res) {
-        if (res.statusCode === 200 && res.data && res.data.amapKey) {
-          that.globalData.amapKey = res.data.amapKey;
+    // 为什么改用 api.request：云托管默认域名（*.run.tcloudbase.com）不允许配置进小程序
+    // request 合法域名，wx.request 在体验版/正式版必然失败；api.request 走 callContainer
+    // 内网通道，并自动携带 Authorization（后端该接口已加登录鉴权）。
+    api.request('/api/v1/config/map-key', { timeout: 5000 })
+      .then(function (data) {
+        if (data && data.amapKey) {
+          that.globalData.amapKey = data.amapKey;
           console.log('[App] 地图Key已从后端获取');
+        } else {
+          // 后端未配置 Key：降级用本地兜底 Key（可能为空，地图功能会提示未配置）
+          that.globalData.amapKey = that.globalData._fallbackMapKey;
+          console.warn('[App] 后端未返回地图Key，使用本地兜底Key');
         }
-      },
-      fail: function () {
-        // 降级：后端不可达时使用本地硬编码的 Key
-        console.log('[App] 使用本地Key:', that.globalData._fallbackMapKey);
+      })
+      .catch(function (err) {
+        // 失败兜底：接口不可达或未登录（401 重登失败）时用本地 Key，不阻塞启动
         that.globalData.amapKey = that.globalData._fallbackMapKey;
-      },
-    });
+        console.warn('[App] 获取地图Key失败，使用本地Key:', JSON.stringify(err));
+      });
   },
 
   /**

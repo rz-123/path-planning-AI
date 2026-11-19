@@ -52,13 +52,23 @@ class TestEndpoints:
         assert "version" in data
         assert "docs" in data
 
-    def test_map_key_endpoint(self):
-        """GET /api/v1/config/map-key → 200"""
+    def test_map_key_endpoint(self, valid_jwt_token):
+        """GET /api/v1/config/map-key（带 Token）→ 200"""
+        from main import app
+        client = TestClient(app)
+        resp = client.get(
+            "/api/v1/config/map-key",
+            headers={"Authorization": f"Bearer {valid_jwt_token}"},
+        )
+        assert resp.status_code == 200
+        assert "amapKey" in resp.json()
+
+    def test_map_key_requires_auth(self):
+        """GET /api/v1/config/map-key 不带 Token → 401（防止匿名刷 Key）"""
         from main import app
         client = TestClient(app)
         resp = client.get("/api/v1/config/map-key")
-        assert resp.status_code == 200
-        assert "amapKey" in resp.json()
+        assert resp.status_code == 401
 
     def test_hot_destinations_endpoint(self):
         """GET /api/v1/destinations/hot → 200"""
@@ -77,10 +87,13 @@ class TestEndpoints:
         assert resp.status_code == 200
         assert "name" in resp.json()
 
-    def test_map_key_returns_empty_when_not_configured(self, mock_settings):
+    def test_map_key_returns_empty_when_not_configured(self, mock_settings, valid_jwt_token):
         """未配置高德 Key → 返回空字符串"""
         mock_settings.amap_key = ""
         from main import app
         client = TestClient(app)
-        resp = client.get("/api/v1/config/map-key")
+        resp = client.get(
+            "/api/v1/config/map-key",
+            headers={"Authorization": f"Bearer {valid_jwt_token}"},
+        )
         assert resp.json()["amapKey"] == ""

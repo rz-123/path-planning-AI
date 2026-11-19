@@ -36,6 +36,50 @@ class TestGenerateTrip:
 
                     mock_task.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_stores_user_id_for_ownership(self, trip_form_data):
+        """生成任务时必须记录 userId，供后续归属校验"""
+        import services.trip_service as svc
+        svc._generation_tasks.clear()
+        with patch("services.trip_service.uuid.uuid4") as mock_uuid:
+            mock_uuid.return_value.hex = "owner1234567"
+            with patch("services.trip_service.asyncio.create_task") as mock_task:
+                mock_task.return_value = MagicMock()
+                with patch("agents.supervisor.SupervisorAgent"):
+                    from services.trip_service import generate_trip
+                    resp = await generate_trip(trip_form_data, "user_owner")
+        assert svc._generation_tasks[resp.tripId]["userId"] == "user_owner"
+        svc._generation_tasks.clear()
+
+
+class TestRunGenerationKeepsOwner:
+    """_run_generation 更新状态时不能丢掉 userId"""
+
+    def teardown_method(self):
+        import services.trip_service as svc
+        svc._generation_tasks.clear()
+        svc._cancelled_trips.clear()
+
+    @pytest.mark.asyncio
+    async def test_completed_keeps_user_id(self, trip_form_data):
+        import services.trip_service as svc
+        from services.trip_service import _run_generation
+
+        trip_id = "trip_keepowner"
+        svc._generation_tasks[trip_id] = {
+            "status": "processing", "progress": 10, "currentStep": "", "result": None,
+            "userId": "user_owner",
+        }
+
+        supervisor = MagicMock()
+        supervisor.run = AsyncMock(return_value={"title": "杭州3日游", "totalBudget": 1000})
+
+        await _run_generation(trip_id, trip_form_data, "user_owner", supervisor)
+
+        task = svc._generation_tasks[trip_id]
+        assert task["status"] == "completed"
+        assert task["userId"] == "user_owner"          # 关键：归属没被覆盖掉
+
 
 class TestGetGenerationStatus:
 
@@ -89,6 +133,34 @@ class TestGetGenerationStatus:
         assert resp.progress == 100
         assert resp.result == {"title": "杭州3日游"}
 
+    @pytest.mark.asyncio
+    async def test_owner_can_read(self):
+        """归属者查询 → 正常返回"""
+        self.setup_tasks({
+            "trip_owned": {
+                "status": "processing", "progress": 30,
+                "currentStep": "规划中...", "result": None, "userId": "user_a",
+            }
+        })
+        from services.trip_service import get_generation_status
+        resp = await get_generation_status("trip_owned", "user_a")
+        assert resp.status == "processing"
+        assert resp.progress == 30
+
+    @pytest.mark.asyncio
+    async def test_other_user_gets_not_found(self):
+        """非归属者查询 → not_found（不泄露任务存在）"""
+        self.setup_tasks({
+            "trip_owned2": {
+                "status": "completed", "progress": 100,
+                "currentStep": "完成", "result": {"secret": "x"}, "userId": "user_a",
+            }
+        })
+        from services.trip_service import get_generation_status
+        resp = await get_generation_status("trip_owned2", "user_b")
+        assert resp.status == "not_found"
+        assert resp.result is None
+
 
 class TestCancelTrip:
 
@@ -128,3 +200,29 @@ class TestCancelTrip:
         from services.trip_service import cancel_trip
         result = await cancel_trip("no_such_trip")
         assert result is False
+
+    @pytest.mark.asyncio
+    async def test_cancel_other_user_task_returns_false(self):
+        """非归属者取消 → False，且不写入取消集合"""
+        import services.trip_service as svc
+        svc._generation_tasks["trip_others"] = {
+            "status": "processing", "progress": 10, "currentStep": "...",
+            "result": None, "userId": "user_a",
+        }
+        from services.trip_service import cancel_trip
+        result = await cancel_trip("trip_others", "user_b")
+        assert result is False
+        assert "trip_others" not in svc._cancelled_trips
+
+    @pytest.mark.asyncio
+    async def test_cancel_owner_task_returns_true(self):
+        """归属者取消 → True"""
+        import services.trip_service as svc
+        svc._generation_tasks["trip_mine"] = {
+            "status": "processing", "progress": 10, "currentStep": "...",
+            "result": None, "userId": "user_a",
+        }
+        from services.trip_service import cancel_trip
+        result = await cancel_trip("trip_mine", "user_a")
+        assert result is True
+        assert "trip_mine" in svc._cancelled_trips

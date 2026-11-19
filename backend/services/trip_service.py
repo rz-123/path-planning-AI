@@ -13,6 +13,12 @@
   - 使用内存集合 _cancelled_trips 实现取消机制
   - 当前采用内存存储（非持久化），服务重启后旧任务丢失
 
+⚠️ 部署限制（重要，勿擅自改多实例）：
+  任务状态只存在「当前进程内存」里，所以 CloudRun 必须固定为单实例（最大实例数 = 1）。
+  一旦扩到多实例：POST /generate 打到实例 A，GET /status 轮询可能打到实例 B，
+  B 的内存里没有这个 trip_id，会一直返回 not_found（概率性故障，极难排查）。
+  要支持多实例必须先把任务状态换成共享存储（CloudBase 云数据库 / Redis）。
+
 面试考点：为什么不用数据库存储任务状态？
   - 任务状态是临时性的（生成完成就结束），不需要持久化
   - 内存操作比数据库快 100~1000 倍
@@ -91,6 +97,7 @@ async def generate_trip(form: TripFormData, user_id: str) -> GenerateResponse:
         "progress": 0,                           # 初始进度 0%
         "currentStep": "启动 LangGraph...",       # 当前步骤描述（前端展示用）
         "result": None,                           # 完成后才填充完整 TripResult
+        "userId": user_id,                        # 归属用户：查询/取消时校验，防止越权访问别人的行程
     }
 
     # 创建 SupervisorAgent 实例（编排 LangGraph 工作流）
@@ -152,12 +159,13 @@ async def _run_generation(trip_id: str, form: TripFormData, user_id: str, superv
         # 检查用户是否已取消（在生成过程中点击了返回按钮）
         if trip_id in _cancelled_trips:
             _cancelled_trips.discard(trip_id)    # 从取消集合中移除（清理）
-            _generation_tasks[trip_id] = {
+            # 为什么用 update 而不是整体重新赋值：整体赋值会丢掉 userId，导致后续无法校验归属
+            _generation_tasks[trip_id].update({
                 "status": "cancelled",            # 状态：已取消
                 "progress": 0,
                 "currentStep": "已取消",
                 "result": None
-            }
+            })
             return                                # 直接返回，不继续处理结果
 
         # 将用户 ID 和 trip ID 注入到结果中
@@ -168,31 +176,35 @@ async def _run_generation(trip_id: str, form: TripFormData, user_id: str, superv
         # 打印关键结果到控制台（方便调试和监控）
         print(f"[Agent] {trip_id} 生成完成: {result.get('title','')} ¥{result.get('totalBudget',0)}")
 
-        # 更新任务状态：完成
-        _generation_tasks[trip_id] = {
+        # 更新任务状态：完成（用 update 保留 userId 归属字段）
+        _generation_tasks[trip_id].update({
             "status": "completed",
             "progress": 100,                     # 进度 100%
             "currentStep": "完成",                # 步骤描述
             "result": result,                    # 完整结果（TripResult dict）
-        }
+        })
         
     except Exception as e:
         # 任何异常都记录日志并标记任务为失败
         logger.error(f"生成失败 {trip_id}: {e}")
         traceback.print_exc()
         
-        # 更新任务状态：失败
-        _generation_tasks[trip_id] = {
+        # 更新任务状态：失败（用 update 保留 userId 归属字段）
+        _generation_tasks[trip_id].update({
             "status": "failed",                  # 状态：失败
             "progress": 0,
             "currentStep": str(e),               # 错误信息作为当前步骤（前端展示）
             "result": None
-        }
+        })
 
 
-async def cancel_trip(trip_id: str) -> bool:
+async def cancel_trip(trip_id: str, user_id: str | None = None) -> bool:
     """
     取消正在生成的任务
+
+    user_id 说明（安全修复）：
+    - 传了 user_id 且任务有归属时，必须与任务归属一致才允许取消
+    - 不一致直接返回 False（不提示"任务存在但不是你的"，避免探测他人 trip_id）
     
     取消机制：
     1. 将 trip_id 加入 _cancelled_trips 集合
@@ -210,22 +222,24 @@ async def cancel_trip(trip_id: str) -> bool:
     - asyncio 的 cancel() 也是协作式的：抛出 CancelledError，协程需要自己处理
     """
     task = _generation_tasks.get(trip_id)        # 获取任务状态，不存在返回 None
-    if task and task["status"] == "processing":  # 只有正在处理的任务才能被取消
+    if not task:
+        return False                             # 任务不存在
+    # 归属校验：任务有归属且不是当前用户 → 不允许取消（防止取消别人的生成任务）
+    if user_id is not None and task.get("userId") and task["userId"] != user_id:
+        return False
+    if task["status"] == "processing":           # 只有正在处理的任务才能被取消
         _cancelled_trips.add(trip_id)            # 加入取消集合（信号传递）
         return True                              # 返回取消成功
-    return False                                 # 任务不存在或已完成，无法取消
+    return False                                 # 任务已完成，无法取消
 
 
-async def get_generation_status(trip_id: str) -> GenerateStatusResponse:
+async def get_generation_status(trip_id: str, user_id: str | None = None) -> GenerateStatusResponse:
     """
     查询生成进度（前端轮询调用）
-    
-    这是前端每 3 秒调用的接口，返回当前进度信息
-    
-    面试考点：get vs [] 的区别？
-    - dict.get("key"): 返回 None（或者自定义默认值），不会抛出 KeyError
-    - dict["key"]: 键不存在时抛出 KeyError
-    - 这里用 .get() 更安全，因为 trip_id 可能不存在（如已过期或输错）
+
+    user_id 说明（安全修复）：
+    - 传了 user_id 且任务有归属时，非归属用户一律按 not_found 返回
+    - 为什么返回 not_found 而不是 403：403 等于告诉对方"这个 trip_id 是存在的"，属于信息泄露
     """
     task = _generation_tasks.get(trip_id)        # 安全获取任务状态
     if not task:
@@ -234,9 +248,16 @@ async def get_generation_status(trip_id: str) -> GenerateStatusResponse:
             tripId=trip_id, 
             status="not_found"
         )
-    
-    # 将任务状态字典展开为 GenerateStatusResponse Pydantic 模型
-    # **task: Python 字典解包操作，将 {"status":"processing","progress":50,...} 
-    # 变为关键字参数 status="processing", progress=50, ...
-    # tripId=trip_id: 额外添加 tripId 字段（task 中可能没有）
-    return GenerateStatusResponse(**{**task, "tripId": trip_id})
+
+    # 归属校验：不是自己的任务，按"不存在"处理
+    if user_id is not None and task.get("userId") and task["userId"] != user_id:
+        return GenerateStatusResponse(tripId=trip_id, status="not_found")
+
+    # 显式挑字段构造响应：task 里有 userId 等内部字段，不能原样透传给前端
+    return GenerateStatusResponse(
+        tripId=trip_id,
+        status=task["status"],
+        progress=task.get("progress", 0),
+        currentStep=task.get("currentStep", ""),
+        result=task.get("result"),
+    )

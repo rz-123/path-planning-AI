@@ -2,6 +2,7 @@
 
 import jwt
 import pytest
+from fastapi import HTTPException
 from unittest.mock import patch, AsyncMock, MagicMock
 
 
@@ -63,7 +64,7 @@ class TestWxLogin:
 
     @pytest.mark.asyncio
     async def test_wechat_api_error(self):
-        """wx.login 返回 errcode → 错误处理"""
+        """wx.login 返回 errcode → 抛 502，不再签发假 token"""
         import api.v1.auth
         from api.v1.auth import wx_login, LoginRequest
 
@@ -82,12 +83,14 @@ class TestWxLogin:
         mock_client.get.return_value = mock_response
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            resp = await wx_login(LoginRequest(code="bad_code"))
-            assert "wx_error" in resp.openid
+            with pytest.raises(HTTPException) as exc:
+                await wx_login(LoginRequest(code="bad_code"))
+            assert exc.value.status_code == 502
+            assert "40029" in exc.value.detail
 
     @pytest.mark.asyncio
     async def test_network_error(self):
-        """wx.login 网络异常 → 容错"""
+        """wx.login 网络异常 → 抛 502，不再签发假 token"""
         import api.v1.auth
         from api.v1.auth import wx_login, LoginRequest
 
@@ -100,5 +103,68 @@ class TestWxLogin:
         mock_client.get.side_effect = Exception("Connection refused")
 
         with patch("httpx.AsyncClient", return_value=mock_client):
-            resp = await wx_login(LoginRequest(code="code"))
-            assert resp.openid == "wx_network_error"
+            with pytest.raises(HTTPException) as exc:
+                await wx_login(LoginRequest(code="code"))
+            assert exc.value.status_code == 502
+            assert "暂不可用" in exc.value.detail
+
+    @pytest.mark.asyncio
+    async def test_openid_missing_raises_502(self):
+        """微信返回 200 但没有 openid → 抛 502"""
+        import api.v1.auth
+        from api.v1.auth import wx_login, LoginRequest
+
+        api.v1.auth.settings.wx_appid = "mock_appid"
+        api.v1.auth.settings.wx_secret = "mock_secret"
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"session_key": "sk"}   # 没 openid
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            with pytest.raises(HTTPException) as exc:
+                await wx_login(LoginRequest(code="code"))
+            assert exc.value.status_code == 502
+
+
+class TestStableUserId:
+    """同一 openid 必须得到同一个 user_id（原先每次登录 uuid4 导致身份漂移）"""
+
+    @pytest.mark.asyncio
+    async def test_same_openid_same_user_id(self):
+        """dev 模式下同一 code 两次登录 → user_id 相同"""
+        from api.v1.auth import wx_login, LoginRequest
+        r1 = await wx_login(LoginRequest(code="stable_code_123"))
+        r2 = await wx_login(LoginRequest(code="stable_code_123"))
+        assert r1.user_id == r2.user_id
+        assert r1.openid == r2.openid
+
+    @pytest.mark.asyncio
+    async def test_different_openid_different_user_id(self):
+        """不同 openid → user_id 不同"""
+        from api.v1.auth import wx_login, LoginRequest
+        r1 = await wx_login(LoginRequest(code="code_aaa"))
+        r2 = await wx_login(LoginRequest(code="code_bbb"))
+        assert r1.user_id != r2.user_id
+
+    @pytest.mark.asyncio
+    async def test_production_same_openid_same_user_id(self):
+        """生产模式下同一 openid 两次登录 → user_id 相同"""
+        import api.v1.auth
+        from api.v1.auth import wx_login, LoginRequest
+
+        api.v1.auth.settings.wx_appid = "mock_appid"
+        api.v1.auth.settings.wx_secret = "mock_secret"
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"openid": "real_openid_same", "session_key": "sk"}
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            r1 = await wx_login(LoginRequest(code="code1"))
+            r2 = await wx_login(LoginRequest(code="code2"))
+            assert r1.user_id == r2.user_id

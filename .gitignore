@@ -28,9 +28,14 @@ npm-debug.log*
 # ===== 微信小程序 =====
 project.private.config.json
 
+# ===== 个人求职材料（仅本地保留，不进公开仓库） =====
+backend/面试文档-AI旅行规划系统.md
+backend/docs/resume_description.md
+
 # ===== IDE / 编辑器 =====
 .idea/
 .vscode/
+.trae/
 *.swp
 *.swo
 .DS_Store

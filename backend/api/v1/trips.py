@@ -84,12 +84,19 @@ async def generate_trip(
 @router.get("/{trip_id}/status", response_model=GenerateStatusResponse)
 # {trip_id}: 路径参数，FastAPI 自动从 URL 中提取
 # 例如 GET /api/v1/trips/trip_a1b2c3d4/status → trip_id = "trip_a1b2c3d4"
-async def get_generation_status(trip_id: str):
+async def get_generation_status(
+    trip_id: str,
+    user_id: str = Depends(get_current_user),    # 必须登录：防止知道 trip_id 就能拉到别人完整行程
+):
     """
     查询行程生成进度（GET /api/v1/trips/{trip_id}/status）
 
     URL 参数：
     - trip_id: 由 generate_trip 返回的任务 ID
+
+    鉴权说明（安全修复）：
+    - 必须携带 Bearer Token，未登录返回 401
+    - 只能查询自己的行程；别人的 trip_id 统一返回 status="not_found"
 
     响应体（GenerateStatusResponse）：
     - tripId: 任务 ID
@@ -103,17 +110,22 @@ async def get_generation_status(trip_id: str):
     - status="completed" 时 result 字段包含完整行程 JSON
     - status 变为 completed/failed/cancelled 后，前端停止轮询
     """
-    # 委托给 Service 层查询任务状态
-    return await trip_service.get_generation_status(trip_id)
+    # 委托给 Service 层查询任务状态（传入 user_id 做归属校验）
+    return await trip_service.get_generation_status(trip_id, user_id)
 
 
 @router.delete("/{trip_id}/cancel")
 # DELETE 请求：符合 RESTful 语义，表示"删除/取消一个资源"
-async def cancel_trip(trip_id: str):
+async def cancel_trip(
+    trip_id: str,
+    user_id: str = Depends(get_current_user),    # 必须登录：防止别人取消你的生成任务
+):
     """
     取消正在生成的行程（DELETE /api/v1/trips/{trip_id}/cancel）
 
     触发时机：用户在生成页面点击"返回"按钮
+    鉴权说明（安全修复）：必须携带 Token，且只能取消自己的任务
+
     实现方式（协作式取消）：
     1. 请求 → trip_service.cancel_trip() → 将 trip_id 加入 _cancelled_trips 集合
     2. Agent 节点在每次执行前调用 check_cancelled() 检查集合
@@ -124,6 +136,6 @@ async def cancel_trip(trip_id: str):
     - 取消检查点在各 Agent 节点开头，所以取消有延迟
     - 如果所有节点都在快速执行（无 LLM 调用），可能取消不生效
     """
-    # 调用 Service 层取消逻辑
-    ok = await trip_service.cancel_trip(trip_id)
+    # 调用 Service 层取消逻辑（传入 user_id 做归属校验）
+    ok = await trip_service.cancel_trip(trip_id, user_id)
     return {"success": ok, "tripId": trip_id}

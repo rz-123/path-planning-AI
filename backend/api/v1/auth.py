@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone  # datetime=日期时间, tim
 # ===== 第三方库导入 =====
 import httpx                                    # 现代 HTTP 客户端（支持 HTTP/2 和 async/await）
 import jwt                                      # PyJWT: JSON Web Token 编码/解码库
-from fastapi import APIRouter                   # APIRouter: FastAPI 子路由注册器
+from fastapi import APIRouter, HTTPException     # HTTPException: 抛出标准 HTTP 错误响应（登录失败时使用）
 from pydantic import BaseModel                  # Pydantic 数据模型基类（请求/响应 Schema）
 
 # ===== 项目内部模块导入 =====
@@ -35,6 +35,13 @@ from config import settings                    # 全局配置（微信 appid/sec
 router = APIRouter(prefix="/auth", tags=["认证"])
 # 所有路由自动带 /auth 前缀 → 实际路径 /api/v1/auth/login
 logger = logging.getLogger(__name__)            # 获取当前模块的日志实例
+
+# ===== 稳定 user_id 的 UUIDv5 命名空间 =====
+# 为什么需要：原先每次登录都 uuid4() 生成新 ID，同一微信用户每次登录身份都变，
+#             导致「我的行程」按 userId 过滤时查不到历史数据。
+# 做法：用固定命名空间 + openid 做 UUIDv5（确定性哈希），同一 openid 永远得到同一 user_id。
+#       这是零存储、零依赖的最小修复；后续若要存昵称/头像，再把 (openid → user_id) 落库即可。
+_USER_ID_NAMESPACE = uuid.UUID("6f1b8a2c-3d4e-5f60-8a7b-9c0d1e2f3a4b")
 
 
 class LoginRequest(BaseModel):
@@ -146,26 +153,32 @@ async def wx_login(body: LoginRequest):
                 resp = await client.get(url, params=params)
                 data = resp.json()                 # 解析微信返回的 JSON
 
-            # 检查微信返回是否有错误（errcode != 0 表示失败）
-            if data.get("errcode", 0) != 0:
-                errcode = data.get("errcode")       # 错误码（如 40029 = code 无效）
-                errmsg = data.get("errmsg", "未知错误")  # 错误描述
-                logger.error(f"wx.login 失败: errcode={errcode} errmsg={errmsg}")
-                # 不抛异常，返回带错误信息的 openid（容错设计）
-                openid = f"wx_error_{errcode}"
-            else:
-                # 成功获取 openid（微信用户的唯一标识）
-                openid = data.get("openid", "")
-                logger.info(f"用户登录成功: openid={openid[:10]}...")
-
         except Exception as e:
-            # 网络异常处理：微信服务不可用时保持不崩溃
+            # 网络异常处理：微信服务不可用时明确报错，不再签发"假"token
             logger.error(f"wx.login 网络异常: {e}")
-            openid = "wx_network_error"            # 标记为网络错误
+            # 为什么抛 502：这是上游（微信）不可用，不是客户端参数错误，502 Bad Gateway 语义更准确
+            raise HTTPException(status_code=502, detail="微信登录服务暂不可用，请稍后重试")
+
+        # 检查微信返回是否有错误（errcode != 0 表示失败）
+        if data.get("errcode", 0) != 0:
+            errcode = data.get("errcode")           # 错误码（如 40029 = code 无效）
+            errmsg = data.get("errmsg", "未知错误")  # 错误描述
+            logger.error(f"wx.login 失败: errcode={errcode} errmsg={errmsg}")
+            # 为什么抛 502：登录失败必须让前端知道，否则用户会拿着无效身份继续请求
+            raise HTTPException(status_code=502, detail=f"微信登录失败: {errcode} {errmsg}")
+
+        # 成功获取 openid（微信用户的唯一标识）
+        openid = data.get("openid", "")
+        if not openid:
+            # 微信返回 200 但没有 openid（极少见），按登录失败处理
+            logger.error("wx.login 未返回 openid")
+            raise HTTPException(status_code=502, detail="微信登录失败: 未返回 openid")
+        logger.info(f"用户登录成功: openid={openid[:10]}...")
 
     # === 生成 JWT Token ===
-    # 使用 uuid4() 生成随机 user_id（生产环境应从数据库获取/创建用户）
-    user_id = str(uuid.uuid4())
+    # 为什么用 UUIDv5(openid) 而不是 uuid4()：openid 是稳定标识，
+    # 同一用户每次登录必须拿到同一 user_id，否则历史行程全部"丢失"。
+    user_id = "u_" + uuid.uuid5(_USER_ID_NAMESPACE, openid).hex[:16]
     token = create_jwt_token(user_id, openid)
 
     # === 返回登录响应 ===

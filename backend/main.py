@@ -17,7 +17,7 @@ import logging                                  # 日志模块，用于记录应
 
 # ===== 第三方库导入 =====
 from contextlib import asynccontextmanager      # 异步上下文管理器装饰器，用于管理异步资源的生命周期
-from fastapi import FastAPI                     # FastAPI 核心类，创建 Web 应用实例
+from fastapi import Depends, FastAPI              # FastAPI 核心类, Depends 依赖注入（鉴权）
 from fastapi.middleware.cors import CORSMiddleware  # CORS 中间件，处理跨域请求
 
 # ===== 项目内部模块导入 =====
@@ -89,6 +89,7 @@ from api.v1.trips import router as trips_router              # 行程相关 API�
 from api.v1.destinations import router as destinations_router  # 目的地推荐 API
 from api.v1.geo import router as geo_router                  # 地理编码 API
 from api.v1.auth import router as auth_router                # 用户登录 API
+from api.deps import get_current_user                        # JWT 鉴权依赖（map-key 接口使用）
 
 app.include_router(trips_router, prefix="/api/v1")           # 挂载行程路由 → 实际路径 /api/v1/trips/...
 app.include_router(destinations_router, prefix="/api/v1")    # 挂载目的地路由 → /api/v1/destinations/...
@@ -126,7 +127,9 @@ async def health():
 
 # ===== 地图 Key 获取接口 =====
 @app.get("/api/v1/config/map-key")             # GET /api/v1/config/map-key
-async def get_map_key():
+async def get_map_key(
+    user_id: str = Depends(get_current_user),  # 必须登录：避免任何人白拿 Key 刷爆每日配额
+):
     """
     前端获取高德地图 API Key
 
@@ -134,6 +137,8 @@ async def get_map_key():
     - 地图 Key 属于敏感信息，不应硬编码在前端代码里
     - 通过后端 API 动态下发，可以由管理员随时更换 Key
     - 前端小程序在 app.js 的 onLaunch 中调用此接口获取 Key
+
+    鉴权说明（安全修复）：需要 Bearer Token，未登录返回 401
 
     历史变更：原为腾讯地图 Key，2026-07 统一替换为高德地图
     """
