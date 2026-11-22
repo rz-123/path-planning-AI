@@ -1,4 +1,5 @@
 const { getStorageItem } = require('../../utils/util');
+const api = require('../../utils/api');          // 后端接口（保存行程到本地数据库）
 
 // 天气 → 图标映射
 const WEATHER_ICONS = {
@@ -300,42 +301,23 @@ Page({
   onSave() {
     var trip = this.data.trip;
     if (!trip) return;
+    // 防连点：上一次保存还没返回时直接忽略，避免同一行程被提交两次
+    if (this._saving) return;
+    this._saving = true;
     wx.showLoading({ title: '保存中...' });
-    
-    var db = wx.cloud.database();
-    db.collection('trips').add({
-      data: {
-        title: trip.title || '',
-        destination: trip.destination || '',
-        startDate: trip.startDate || '',
-        endDate: trip.endDate || '',
-        days: trip.days || 0,
-        nights: trip.nights || 0,
-        people: trip.people || 0,
-        adults: trip.adults || 0,
-        children: trip.children || 0,
-        style: trip.style || '',
-        interests: trip.interests || [],
-        totalBudget: trip.totalBudget || 0,
-        budgetPerPerson: trip.budgetPerPerson || 0,
-        budgetLevel: trip.budgetLevel || '',
-        budgetDetail: trip.budgetDetail || {},
-        budgetPieData: trip.budgetPieData || [],
-        dailyPlan: trip.dailyPlan || [],
-        weather: trip.weather || {},
-        saveTips: trip.saveTips || [],
-        fullData: trip,  // 完整原始数据
-        createdAt: db.serverDate(),
-      },
-      success: function() {
-        wx.hideLoading();
-        wx.showToast({ title: '行程已保存到云数据库', icon: 'success' });
-      },
-      fail: function(err) {
-        wx.hideLoading();
-        console.error('保存失败:', err);
-        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
-      },
-    });
+
+    // 为什么改：原来写 CloudBase 云数据库，云服务到期后保存必失败；
+    // 现在改为调用后端 POST /api/v1/trips，落到本地 SQLite。
+    api.saveTrip(trip).then(function () {
+      wx.hideLoading();
+      wx.showToast({ title: '行程已保存', icon: 'success' });
+    }).catch(function (err) {
+      wx.hideLoading();
+      console.error('保存失败:', JSON.stringify(err));
+      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+    }).then(function () {
+      // 无论成功失败都解锁，允许用户下次重试
+      this._saving = false;
+    }.bind(this));
   },
 });

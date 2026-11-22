@@ -29,6 +29,7 @@ from fastapi import APIRouter, HTTPException     # HTTPException: 抛出标准 H
 from pydantic import BaseModel                  # Pydantic 数据模型基类（请求/响应 Schema）
 
 # ===== 项目内部模块导入 =====
+import db                                        # 本地 SQLite 数据层（登录时写 users 表）
 from config import settings                    # 全局配置（微信 appid/secret 等）
 
 # ===== 创建子路由 =====
@@ -179,6 +180,14 @@ async def wx_login(body: LoginRequest):
     # 为什么用 UUIDv5(openid) 而不是 uuid4()：openid 是稳定标识，
     # 同一用户每次登录必须拿到同一 user_id，否则历史行程全部"丢失"。
     user_id = "u_" + uuid.uuid5(_USER_ID_NAMESPACE, openid).hex[:16]
+
+    # === 写入本地用户表（替代 CloudBase users 集合） ===
+    try:
+        db.upsert_user(openid, user_id)
+    except Exception as e:
+        # 为什么不让它失败：用户表只是登录附属数据，写失败不应该导致用户登不进来
+        logger.warning(f"users 表写入失败（不影响登录）: {e}")
+
     token = create_jwt_token(user_id, openid)
 
     # === 返回登录响应 ===

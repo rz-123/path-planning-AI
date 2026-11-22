@@ -11,6 +11,7 @@
 ├── backend/                    # Python 后端 (FastAPI + LangGraph)
 │   ├── main.py                 # 应用入口
 │   ├── config.py               # 配置 + LLM 工厂
+│   ├── db.py                   # 本地 SQLite 数据层（users / trips）
 │   ├── api/v1/                 # RESTful API 路由
 │   ├── agents/                 # 5-Agent LangGraph 工作流
 │   ├── services/               # 业务逻辑层
@@ -46,7 +47,7 @@ flowchart TD
     C --> D{登录成功?}
     D -- 否 / 401 --> E["api.js 自动重新登录<br/>_retried 防死循环"]
     E --> C
-    D -- 是 --> F["云数据库 upsert users 集合"]
+    D -- 是 --> F["后端登录写本地 users 表"]
     F --> G["fetchMapKey → GET /config/map-key"]
     G --> H[首页 index]
 
@@ -62,8 +63,8 @@ flowchart TD
     P --> Q["redirectTo complete 完成页"]
     Q -->|"查看行程"| R["result 详情页<br/>时间线 + 预算饼图 + 地图"]
     Q -->|"重新生成"| J
-    R -->|"点击保存 onSave"| S["云数据库 trips.add"]
-    S --> T["首页 / 我的页查询 trips 集合"]
+    R -->|"点击保存 onSave"| S["POST /api/v1/trips 存本地 SQLite"]
+    S --> T["首页 / 我的页 GET /api/v1/trips"]
     T -->|"点击历史行程"| R
 
     O -- failed / timeout / cancelled --> U["提示并 navigateBack 到 create"]
@@ -136,11 +137,11 @@ sequenceDiagram
 | Agent 工具 | **高德 MCP**（Model Context Protocol） | 天气 `maps_weather`、地理编码 `maps_geo`、POI 搜索、驾车路线；经 `_amap_mcp` 三步握手调用，会话缓存复用；见 `backend/agents/tools.py` |
 | 外部数据 | **飞猪 FlyAI** CLI | 酒店 / 景点价格（RAG 增强），通过 `subprocess` 调用，未配置时自动降级为 LLM 知识库兜底 |
 | 前端 | **微信小程序** 原生（WXML / WXSS / JS） | 页面 `pages/*`、自定义 TabBar、地图组件 |
-| 前端通信 | **wx.cloud.callContainer** | 小程序 → 后端走云托管内网通道（带 `X-WX-SERVICE` 头 + JWT），无需配置 request 合法域名；见 `utils/api.js` |
-| 前端数据 | **CloudBase 云数据库**（NoSQL）+ 小程序本地 Storage | `users` 集合（登录时 upsert）、`trips` 集合（result 页 onSave 写入，首页/我的页查询）；表单与生成结果用本地 Storage 做跨页缓存 |
+| 前端通信 | **wx.request**（本地）/ **wx.cloud.callContainer**（云端） | 由 `utils/api.js` 的 `USE_LOCAL_BACKEND` 一键切换：本地走 `http://localhost:8080`，云端走云托管内网；两种通道都带 JWT |
+| 前端数据 | **本地 SQLite**（后端 `db.py`）+ 小程序本地 Storage | `users` / `trips` 表由后端读写（`POST /api/v1/trips` 保存、`GET /api/v1/trips` 查询）；表单与生成结果用本地 Storage 做跨页缓存 |
 | 坐标修正 | 高德地理编码 | `format` 节点用真实地址/名称修正 LLM 编造的经纬度（对抗幻觉），线程池并行 |
 | 部署 | **Docker** + **CloudBase CloudRun**（容器型） | `backend/Dockerfile` 构建镜像，`cloudbaserc.json` 部署；规格 0.5C/1G，**实例固定为 1** |
-| 测试 | **pytest** + **pytest-asyncio** + **FastAPI TestClient** + **pytest-benchmark** | 135 项用例覆盖 API / Agent / Service / Schema，含鉴权与归属校验 |
+| 测试 | **pytest** + **pytest-asyncio** + **FastAPI TestClient** + **pytest-benchmark** | 140 项用例覆盖 API / Agent / Service / Schema / 本地存储，含鉴权与归属校验 |
 | 配置管理 | **Pydantic Settings** + `.env` | 密钥等敏感配置走环境变量，模板 `backend/.env.example` 入库，`.env` 不提交 |
 
 ## 部署信息
@@ -159,6 +160,8 @@ sequenceDiagram
 
 **API 端点**：
 - `GET /health` — 健康检查
+- `POST /api/v1/trips` — 保存行程（本地 SQLite）
+- `GET /api/v1/trips` — 查询我的行程列表
 - `POST /api/v1/trips/generate` — 提交行程生成
 - `GET /api/v1/trips/{id}/status` — 查询生成进度
 - `DELETE /api/v1/trips/{id}/cancel` — 取消生成
@@ -169,15 +172,16 @@ sequenceDiagram
 
 - AppID: `wx0b239ce65bab54dc`
 - 在微信开发者工具中打开 `miniprogram/` 目录即可运行
-- 小程序通过 `wx.cloud.callContainer` 内网调用后端，无需域名配置
+- 当前为本地调试模式：`utils/api.js` 中 `USE_LOCAL_BACKEND = true`，请求直连 `http://localhost:8080`（开发者工具需勾选「不校验合法域名」）
+- 云端恢复后把该开关改为 `false`，小程序即通过 `wx.cloud.callContainer` 内网调用
 
 ### CloudBase 资源
 
 | 资源 | 用途 |
 |------|------|
-| CloudRun (ai-travel-backend) | 后端 API + AI Agent |
-| 云数据库 (trips 集合) | 行程数据存储 |
-| 云托管内网调用 | 小程序→后端通信 |
+| CloudRun (ai-travel-backend) | 后端 API + AI Agent（**已到期**，当前改连本地后端） |
+| 本地 SQLite (`backend/data/travel.db`) | 行程 / 用户数据存储（替代原云数据库集合） |
+| 云托管内网调用 | 小程序→后端通信（云端恢复后可用） |
 
 ## 重新部署
 

@@ -21,6 +21,7 @@
 // ../../utils/mock: 从当前文件向上两级目录（pages/index → pages → miniprogram根）
 // 然后进入 utils/mock
 var mockHotDests = require('../../utils/mock').mockHotDestinations;
+var api = require('../../utils/api');            // 后端接口（本地数据库读行程）
 
 /**
  * Page({}): 注册页面
@@ -78,37 +79,27 @@ Page({
 
   /**
    * ============================================================
-   * loadRecentTrips — 从 CloudBase 云数据库加载用户最近行程
+   * loadRecentTrips — 从后端本地数据库加载用户最近行程
    * ============================================================
-   * 
-   * wx.cloud.database()：获取云数据库实例
-   * collection('trips')：选择 trips 集合（类似 SQL 的 table）
-   * orderBy('createdAt', 'desc')：按创建时间倒序（最新的在前）
-   * limit(3)：只取前 3 条（首页不需要全部展示）
-   * get()：执行查询（返回 Promise）
-   * 
-   * 面试考点：云数据库查询和 SQL 的对应关系？
-   *   - collection('trips')     = FROM trips
-   *   - orderBy('createdAt','desc') = ORDER BY createdAt DESC
-   *   - limit(3)                = LIMIT 3
-   *   - .get()                  = SELECT *（NoSQL 默认返回全部字段）
-   * 
+   *
+   * api.listTrips(3)：GET /api/v1/trips?limit=3
+   *   - 后端按 JWT 里的 user_id 过滤，只返回当前用户的行
+   *   - 后端已按 created_at 倒序，limit 控制条数
+   *
    * map()：数组转换方法，对每个元素应用函数并返回新数组
-   * item._id：云数据库自动生成的文档 ID
-   * item.fullData：保存时存储的完整行程数据（TripResult JSON）
+   * item._id：行程 ID（后端沿用云数据库的字段名，前端映射代码不用改）
+   * item.fullData：完整行程数据（TripResult JSON）
    */
   loadRecentTrips: function() {
     var that = this;                       // 保存 this 引用（回调函数中 this 指向不同）
     that.setData({ loading: true });       // 显示加载状态
     
-    var db = wx.cloud.database();          // 获取云数据库实例
-    db.collection('trips')                 // 选择 trips 集合
-      .orderBy('createdAt', 'desc')        // 按创建时间倒序（最新在前）
-      .limit(3)                            // 只取前3条
-      .get()                               // 执行查询 → Promise
+    // 为什么改：CloudBase 云数据库到期后查询必失败，改为请求后端本地数据库
+    // 返回结构 {"trips":[...]}，每条含 _id / 摘要字段 / fullData，与原来云数据库文档兼容
+    api.listTrips(3)
       .then(function(res) {                // 查询成功
-        // map(): 将云数据库的文档格式转为前端需要的格式
-        var trips = (res.data || []).map(function(item) {
+        // map(): 将后端返回的行程转为前端需要的格式
+        var trips = (res.trips || []).map(function(item) {
           var startDate = item.startDate || '';
           var endDate = item.endDate || '';
           

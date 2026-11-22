@@ -20,6 +20,14 @@ var envId = 'cloud1-d2gzje1i7ba287acb';
 var serviceName = 'ai-travel-backend';
 var publicBase = 'https://ai-travel-backend-262776-10-1427844883.sh.run.tcloudbase.com';
 
+// ===== 本地后端开关（云托管服务到期后的临时方案） =====
+// true  = 所有接口走 wx.request → http://localhost:8080（微信开发者工具调试用）
+// false = 走云托管内网 callContainer（云端服务恢复后改回 false 即可）
+// 注意：localhost 只能在本机微信开发者工具里访问；真机预览需改成电脑局域网 IP，
+//       并在开发者工具「详情 → 本地设置」勾选「不校验合法域名」。
+var USE_LOCAL_BACKEND = true;
+var LOCAL_BASE = 'http://localhost:8080';
+
 // 取 token：globalData 优先，其次本地 storage（体验版首次启动时登录是异步的）
 function getToken() {
   try {
@@ -84,19 +92,11 @@ function publicRequest(path, options) {
   });
 }
 
-// 开发环境 localhost 用 wx.request，上线自动切 callContainer
-function isDev() {
-  try {
-    var url = getApp().globalData.apiBaseUrl;
-    return !url || url.indexOf('localhost') >= 0 || url.indexOf('127.0.0.1') >= 0;
-  } catch (e) { return false; }
-}
-
-function devRequest(url, options) {
+// 本地调试通道：wx.request 直连本机后端（无需云托管、无需配置域名）
+function devRequest(path, options) {
   return new Promise(function (resolve, reject) {
-    var base = 'http://localhost:8080';
     wx.request({
-      url: base + url,
+      url: LOCAL_BASE + path,
       method: options.method || 'GET',
       data: options.data,
       header: buildHeader(),
@@ -105,11 +105,11 @@ function devRequest(url, options) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data);
         } else {
-          reject({ code: res.statusCode, msg: res.data, via: 'dev' });
+          reject({ code: res.statusCode, msg: res.data, via: 'local' });
         }
       },
       fail: function (err) {
-        reject({ code: -1, msg: err.errMsg, via: 'dev' });
+        reject({ code: -1, msg: err.errMsg, via: 'local' });
       },
     });
   });
@@ -159,10 +159,12 @@ function loginAndGetToken() {
 // ===== 统一入口：401 自动重新登录后重试 =====
 function apiCall(path, options) {
   options = options || {};
-  if (isDev()) return devRequest(path, options);
+  // 通道选择：本地模式走 wx.request，否则走云托管内网 callContainer
+  var send = USE_LOCAL_BACKEND ? devRequest : callCloudRun;
 
-  return callCloudRun(path, options).catch(function (err) {
+  return send(path, options).catch(function (err) {
     // token 过期/失效 → 重新 wx.login 拿新 token 后重试一次（只重试一次，避免死循环）
+    // 本地/云端两种通道都适用，否则本地调试时 token 过期就只能重启小程序
     if (err.code === 401 && !options._retried) {
       console.warn('[API] 收到 401，重新登录后重试:', path);
       return loginAndGetToken().then(function () {
@@ -179,7 +181,7 @@ function apiCall(path, options) {
     }
 
     // 默认不降级：云托管默认域名无法作为小程序合法域名，公网请求在体验版/正式版必然失败
-    if (ENABLE_PUBLIC_FALLBACK && (err.code === -1 || err.code >= 500)) {
+    if (!USE_LOCAL_BACKEND && ENABLE_PUBLIC_FALLBACK && (err.code === -1 || err.code >= 500)) {
       console.warn('[API] 云托管调用失败，降级公网域名:', path, JSON.stringify(err));
       return publicRequest(path, options);
     }
@@ -200,6 +202,14 @@ module.exports = {
   },
   getTripResult: function (tripId) {
     return apiCall('/api/v1/trips/' + tripId, { timeout: 10000 });
+  },
+  // 保存行程到本地数据库（替代原来的 wx.cloud.database().collection('trips').add）
+  saveTrip: function (trip) {
+    return apiCall('/api/v1/trips', { method: 'POST', data: trip, timeout: 10000 });
+  },
+  // 查询我的行程列表（替代原来的云数据库 trips 查询），limit 控制条数
+  listTrips: function (limit) {
+    return apiCall('/api/v1/trips?limit=' + (limit || 20), { timeout: 10000 });
   },
   checkHealth: function () {
     return apiCall('/health', { timeout: 5000 });

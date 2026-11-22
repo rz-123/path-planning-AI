@@ -73,12 +73,14 @@ Page({
     if (this.data.timer) clearInterval(this.data.timer);
     if (this._tripId) {
       console.log('[Generate] 取消后端任务:', this._tripId);
-      wx.cloud.callContainer({
-        config: { env: 'cloud1-d2gzje1i7ba287acb' },
-        path: '/api/v1/trips/' + this._tripId + '/cancel',
+      // 为什么改用 api.request：原来写死 wx.cloud.callContainer 指向云托管，
+      // 云服务到期后必失败；改走统一入口后本地/云端都能用，且自动带登录 Token。
+      api.request('/api/v1/trips/' + this._tripId + '/cancel', {
         method: 'DELETE',
-        header: { 'X-WX-SERVICE': 'ai-travel-backend' },
         timeout: 3000,
+      }).catch(function (err) {
+        // 取消失败不影响用户，只记录日志（页面可能已经在销毁过程中）
+        console.warn('[Generate] 取消任务失败:', JSON.stringify(err));
       });
     }
   },

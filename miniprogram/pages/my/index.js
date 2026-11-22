@@ -5,10 +5,10 @@
  * 功能：
  *   1. 用户信息卡片（头像 + ID）
  *   2. 统计面板（行程数 / 旅行天数 / 最爱目的地）
- *   3. 历史行程列表（从 CloudBase 云数据库加载）
+ *   3. 历史行程列表（从后端本地数据库加载）
  *   4. 空状态（无数据时展示引导文案）
  * 
- * 数据来源：wx.cloud.database().collection('trips')
+ * 数据来源：后端 GET /api/v1/trips（本地 SQLite，按当前用户隔离）
  * 聚合计算：
  *   - totalTrips: 总行程数 = 列表长度
  *   - totalDays:   总天数 = 所有行程天数的累加和
@@ -16,6 +16,7 @@
  * ============================================================================
  */
 var { setStorageItem } = require('../../utils/util');
+var api = require('../../utils/api');            // 后端接口（本地数据库读行程）
 
 Page({
   data: {
@@ -58,13 +59,10 @@ Page({
    */
   loadTrips: function() {
     var that = this;
-    var db = wx.cloud.database();
-    db.collection('trips')
-      .orderBy('createdAt', 'desc')
-      .limit(50)                           // 最多显示50条（分页未实现）
-      .get()
+    // 为什么改：CloudBase 云数据库到期，改为请求后端本地数据库（按当前用户隔离）
+    api.listTrips(50)
       .then(function(res) {
-        var trips = (res.data || []).map(function(item, i) {
+        var trips = (res.trips || []).map(function(item, i) {
           var startDate = item.startDate || '';
           var endDate = item.endDate || '';
           

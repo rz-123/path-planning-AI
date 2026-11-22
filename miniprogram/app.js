@@ -114,41 +114,14 @@ App({
           timeout: 10000,
         }).then(function (data) {
           if (data && data.token) {
-              that.globalData.openid = data.openid;
-              that.globalData.token = data.token;
-              that.globalData.userId = data.user_id;
-              wx.setStorageSync('user_openid', data.openid);
-              wx.setStorageSync('user_token', data.token);
-              wx.setStorageSync('user_id', data.user_id);
-              console.log('[Login] 登录成功, user_id:', data.user_id);
-              // 将用户信息存入 CloudBase users 集合
-              var db = wx.cloud.database();
-              db.collection('users').where({
-                openid: data.openid
-              }).count().then(function(countRes) {
-                if (countRes.total === 0) {
-                  db.collection('users').add({
-                    data: {
-                      user_id: data.user_id,
-                      openid: data.openid,
-                      nickname: data.nickname || '',
-                      avatar_url: data.avatar_url || '',
-                      created_at: db.serverDate(),
-                      last_login: db.serverDate(),
-                    }
-                  });
-                } else {
-                  db.collection('users').where({
-                    openid: data.openid
-                  }).update({
-                    data: { last_login: db.serverDate() }
-                  });
-                }
-              }).catch(function (dbErr) {
-                // 为什么补 catch：count/add/update 任一失败（权限不足、网络异常）都别变成
-                // unhandled rejection，否则控制台看不到原因，用户记录缺失也无从排查
-                console.warn('[Login] users 集合读写失败（不影响登录）:', JSON.stringify(dbErr));
-              });
+            that.globalData.openid = data.openid;
+            that.globalData.token = data.token;
+            that.globalData.userId = data.user_id;
+            wx.setStorageSync('user_openid', data.openid);
+            wx.setStorageSync('user_token', data.token);
+            wx.setStorageSync('user_id', data.user_id);
+            console.log('[Login] 登录成功, user_id:', data.user_id);
+            // 用户信息已由后端登录接口写入本地 users 表（原 CloudBase users 集合逻辑已移除）
           } else {
             console.warn('[Login] 后端未返回 token:', JSON.stringify(data));
           }
@@ -214,7 +187,7 @@ App({
     userId: '',        // 新增：用户 ID
     _fallbackMapKey: '',                                             // 高德地图 Key（后备，需替换为实际 Key）
     amapKey: '',                                                   // 高德地图 Key（从后端获取）
-    apiBaseUrl: 'https://ai-travel-backend-262776-10-1427844883.sh.run.tcloudbase.com', // 后端 API 地址
+    apiBaseUrl: 'http://localhost:8080', // 后端 API 地址（云托管已到期，暂指向本机后端；恢复云端时改回公网地址）
     statusBarHeight: 0,    // 状态栏高度
     safeAreaBottom: 0,     // 底部安全区高度
     navBarHeight: 0,       // 自定义导航栏总高度

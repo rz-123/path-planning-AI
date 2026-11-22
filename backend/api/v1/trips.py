@@ -29,10 +29,11 @@ import logging                                  # Python 日志模块，记录�
 # APIRouter: FastAPI 子路由注册器，支持 prefix/tags 等分组配置
 # Depends: 依赖注入系统，自动解析函数参数
 # HTTPException: 标准 HTTP 错误响应（如 404 Not Found）
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from api.deps import get_current_user           # 用户认证依赖（解析 JWT Token 获取 user_id）
 
 # ===== 项目内部模块导入 =====
+import db                                        # 本地 SQLite 数据层（替代 CloudBase 云数据库）
 from schemas.trip import (
     TripFormData,                                # 表单输入 Pydantic Schema（自动验证 JSON 请求体）
     GenerateResponse,                            # 生成响应 Schema（tripId + status）
@@ -46,6 +47,36 @@ from services import trip_service               # 行程生成业务逻辑层（
 router = APIRouter(prefix="/trips", tags=["行程"])
 # tags=["行程"]: 在 Swagger 文档中自动分组到 "行程" 标签下
 logger = logging.getLogger(__name__)            # 获取当前模块的日志实例
+
+
+@router.get("")
+async def list_my_trips(
+    limit: int = 20,                             # 可选：返回条数（前端首页传 3，我的页传 50）
+    user_id: str = Depends(get_current_user),    # 必须登录：只返回当前用户自己的行程
+):
+    """
+    查询我保存过的行程列表（GET /api/v1/trips?limit=20）
+
+    为什么新增：原来前端直接读 CloudBase 的 trips 集合，云环境到期后列表为空。
+    现在改由后端从本地 SQLite 读取，按 user_id 隔离，按创建时间倒序。
+    """
+    trips = db.list_trips(user_id, limit)
+    return {"trips": trips, "total": len(trips)}
+
+
+@router.post("", status_code=201)
+async def save_trip(
+    trip: dict = Body(...),                      # 完整行程 JSON（来自 result 页的 trip 对象）
+    user_id: str = Depends(get_current_user),    # 归属用户从 Token 取，前端传什么都不算
+):
+    """
+    保存一条行程（POST /api/v1/trips）
+
+    为什么新增：替代前端 db.collection('trips').add(...)。
+    同一行程 id 重复保存会覆盖，避免用户连点产生重复记录。
+    """
+    trip_id = db.save_trip(user_id, trip)
+    return {"success": True, "id": trip_id, "_id": trip_id}
 
 
 @router.post("/generate", response_model=GenerateResponse, status_code=201)

@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware  # CORS 中间件，处理跨
 
 # ===== 项目内部模块导入 =====
 from config import settings                    # 从 config.py 导入全局配置单例（Pydantic Settings 自动加载 .env）
+import db                                       # 本地 SQLite 数据层（启动时建表）
 
 # ===== 日志配置 =====
 # basicConfig: 配置日志的基础格式和级别
@@ -55,6 +56,8 @@ async def lifespan(app: FastAPI):
     - 支持上下文变量（contextvars）的作用域管理
     """
     logger.info("启动中...")                     # 启动时：记录启动日志
+    db.init_db()                                 # 建本地 SQLite 表（幂等，表已存在不会报错）
+    logger.info("本地数据库就绪")                 # 便于确认数据层已初始化
     yield                                        # yield = 应用运行期间的暂停点，应用关闭后恢复执行
     logger.info("已关闭")                        # 关闭时：记录关闭日志
 
