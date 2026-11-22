@@ -32,6 +32,10 @@ project.private.config.json
 backend/面试文档-AI旅行规划系统.md
 backend/docs/resume_description.md
 
+# ===== 本地改动说明/审查报告（默认不入库，用户明确要求时才提交） =====
+改动说明-*.md
+仓库审查报告-*.md
+
 # ===== IDE / 编辑器 =====
 .idea/
 .vscode/
