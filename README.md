@@ -33,16 +33,115 @@
 └── cloudfunctions/             # 云函数 (备用)
 ```
 
+## 系统流程图
+
+> 以下流程图均基于仓库现有代码绘制，节点与箭头对应真实的页面跳转和接口调用（见各 `.js` / `.py` 源文件）。
+
+### 1. 端到端主流程（用户打开 → 生成 → 保存 → 查看历史）
+
+```mermaid
+flowchart TD
+    A([用户打开小程序]) --> B["app.js onLaunch<br/>wx.cloud 初始化"]
+    B --> C["wxLogin → POST /api/v1/auth/login"]
+    C --> D{登录成功?}
+    D -- 否 / 401 --> E["api.js 自动重新登录<br/>_retried 防死循环"]
+    E --> C
+    D -- 是 --> F["云数据库 upsert users 集合"]
+    F --> G["fetchMapKey → GET /config/map-key"]
+    G --> H[首页 index]
+
+    H -->|"点击创建行程"| I["create 页 2 步表单<br/>存 Storage: tripFormData"]
+    I --> J["generate 页"]
+    J --> K["POST /api/v1/trips/generate"]
+    K --> L["后端 trips.generate_trip<br/>内存建任务 + 后台跑 LangGraph"]
+    L --> M["返回 tripId"]
+    M --> N["前端每 3s GET /status 轮询"]
+    N --> O{生成状态}
+    O -- processing --> N
+    O -- completed --> P["存 Storage: tripResult"]
+    P --> Q["redirectTo complete 完成页"]
+    Q -->|"查看行程"| R["result 详情页<br/>时间线 + 预算饼图 + 地图"]
+    Q -->|"重新生成"| J
+    R -->|"点击保存 onSave"| S["云数据库 trips.add"]
+    S --> T["首页 / 我的页查询 trips 集合"]
+    T -->|"点击历史行程"| R
+
+    O -- failed / timeout / cancelled --> U["提示并 navigateBack 到 create"]
+    J -->|"返回 / 离开页面 onUnload"| V["DELETE /cancel 取消任务"]
+```
+
+### 2. 后端 5-Agent LangGraph 工作流
+
+`research → plan → budget → reflection` 为主链路，`reflection` 根据评分做条件路由：≥5 分或已修正过则进入 `format` 合成，否则回到对应 Agent 修正（最多 1 次，`revision_count` 防死循环）。百分比为前端进度条对应值。
+
+```mermaid
+flowchart TD
+    START([trip_id 任务启动]) --> RESEARCH["research 调研 20%<br/>飞猪景点 + 高德天气 + LLM"]
+    RESEARCH --> PLAN["plan 规划 50%<br/>每日路线 + 酒店"]
+    PLAN --> BUDGET["budget 预算 70%<br/>住宿 / 餐饮 / 交通 / 门票"]
+    BUDGET --> REFLECT["reflection 反思 85%<br/>代码检查 10 分制 + 规则检查"]
+    REFLECT -->|"评分≥5 或 已修正过"| FORMAT
+    REFLECT -->|"<5 且未修过 → research"| RESEARCH
+    REFLECT -->|"<5 且未修过 → plan"| PLAN
+    REFLECT -->|"<5 且未修过 → budget"| BUDGET
+    FORMAT["format 合成 95%<br/>拼 JSON + 高德地理编码修正坐标"] --> END([输出 final_json])
+```
+
+### 3. 前端生成轮询与取消（时序图）
+
+采用「异步任务 + 轮询」而非 WebSocket/SSE：后端立即返回 `tripId`，前端每 3 秒查一次状态，离开页面时主动取消。
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant F as generate 页
+    participant A as api.js (callContainer)
+    participant B as 后端 trips
+    participant S as trip_service 内存任务
+
+    U->>F: 提交表单 (存 Storage)
+    F->>A: POST /trips/generate
+    A->>B: callContainer (带 JWT)
+    B->>S: 建任务 + 后台启动 graph
+    B-->>A: tripId
+    A-->>F: tripId
+    loop 每 3s 最多 60 次
+        F->>A: GET /trips/id/status
+        A->>B: callContainer
+        B->>S: 读内存任务
+        S-->>B: status / progress / currentStep
+        B-->>F: 更新进度条
+    end
+    alt completed
+        F->>F: 存 Storage tripResult
+        F->>F: redirectTo complete
+    else failed / 超时
+        F->>U: 提示失败并返回
+    end
+    U->>F: 返回 / 离开页面 onUnload
+    F->>B: DELETE /trips/id/cancel
+    B->>S: 标记取消
+```
+
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| AI 引擎 | LangGraph (5-Agent 工作流) + LangChain + DeepSeek LLM |
-| 后端框架 | FastAPI (Python 3.12) |
-| 前端 | 微信小程序 (WXML/WXSS/JS) |
-| 部署 | CloudBase CloudRun (容器型) + Docker |
-| 数据库 | CloudBase 云数据库 (NoSQL) |
-| 外部服务 | 高德 MCP、飞猪 FlyAI、博查搜索 |
+> 下表为仓库代码中实际使用的技术，按层归类并说明用途。
+
+| 层级 | 技术 | 用途 / 对应位置 |
+|------|------|----------------|
+| AI 编排 | **LangGraph** + **LangChain** | 5 节点有状态工作流（research/plan/budget/reflection/format），支持条件路由与自修正循环；见 `backend/agents/graph.py` |
+| 大模型 LLM | **DeepSeek**（默认），兼容 OpenAI / 混元 / 智谱 | 由 `config.get_llm` 工厂按 `LLM_PROVIDER` 切换；结构化输出用低温 `get_llm_structured` |
+| 后端框架 | **FastAPI**（Python 3.12）+ **Pydantic v2** | RESTful API、请求/响应模型校验；`api/v1/*.py`、`schemas/trip.py` |
+| 后端服务 | **Uvicorn**、**httpx**、**PyJWT** | ASGI 服务、异步 HTTP（微信登录/高德 MCP）、JWT 签发与鉴权 |
+| Agent 工具 | **高德 MCP**（Model Context Protocol） | 天气 `maps_weather`、地理编码 `maps_geo`、POI 搜索、驾车路线；经 `_amap_mcp` 三步握手调用，会话缓存复用；见 `backend/agents/tools.py` |
+| 外部数据 | **飞猪 FlyAI** CLI | 酒店 / 景点价格（RAG 增强），通过 `subprocess` 调用，未配置时自动降级为 LLM 知识库兜底 |
+| 前端 | **微信小程序** 原生（WXML / WXSS / JS） | 页面 `pages/*`、自定义 TabBar、地图组件 |
+| 前端通信 | **wx.cloud.callContainer** | 小程序 → 后端走云托管内网通道（带 `X-WX-SERVICE` 头 + JWT），无需配置 request 合法域名；见 `utils/api.js` |
+| 前端数据 | **CloudBase 云数据库**（NoSQL）+ 小程序本地 Storage | `users` 集合（登录时 upsert）、`trips` 集合（result 页 onSave 写入，首页/我的页查询）；表单与生成结果用本地 Storage 做跨页缓存 |
+| 坐标修正 | 高德地理编码 | `format` 节点用真实地址/名称修正 LLM 编造的经纬度（对抗幻觉），线程池并行 |
+| 部署 | **Docker** + **CloudBase CloudRun**（容器型） | `backend/Dockerfile` 构建镜像，`cloudbaserc.json` 部署；规格 0.5C/1G，**实例固定为 1** |
+| 测试 | **pytest** + **pytest-asyncio** + **FastAPI TestClient** + **pytest-benchmark** | 135 项用例覆盖 API / Agent / Service / Schema，含鉴权与归属校验 |
+| 配置管理 | **Pydantic Settings** + `.env` | 密钥等敏感配置走环境变量，模板 `backend/.env.example` 入库，`.env` 不提交 |
 
 ## 部署信息
 
